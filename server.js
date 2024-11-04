@@ -73,6 +73,7 @@ io.on('connection', (socket) => {
     if (newUser) {
       socket.user = newUser;
       socket.emit('registered', newUser);
+      socket.emit('message_history', messages);
     } else {
       socket.emit('registration_failed');
     }

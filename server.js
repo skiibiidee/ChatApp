@@ -97,6 +97,27 @@ io.on('connection', (socket) => {
       addMessage(message, socket.user.id, socket.user.username);
     }
   });
+  let userstyping = {}
+  socket.on('user_stopped_typing', (username)=>{
+    if(Object.keys(userstyping).includes(username)){
+      clearTimeout(userstyping[username])
+      delete userstyping[username]
+      io.emit('user_stopped_typing',username)
+    }
+  });
+
+  socket.on('user_started_typing', (username)=>{
+    if(!(Object.keys(userstyping).includes(username))){
+      userstyping[username] = setTimeout(()=>{
+        delete userstyping[username]
+
+        io.emit('user_stopped_typing',username)
+
+      },5000)
+      io.emit('user_started_typing',username)
+    }
+
+  });
 
   socket.on('disconnect', () => {
     console.log('user disconnected');

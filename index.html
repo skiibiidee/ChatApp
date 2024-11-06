@@ -1,160 +1,325 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chat App</title>
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body class="bg-gray-100 h-screen flex flex-col">
-    <div id="login-page" class="flex-1 flex items-center justify-center">
-      <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h1 class="text-2xl font-bold mb-4 text-gray-800">Login</h1>
-        <div class="mb-4">
-          <label for="username" class="block text-gray-700 font-bold mb-2"
-            >Username:</label
-          >
-          <input
-            type="text"
-            id="username"
-            class="w-full p-2 border rounded"
-            placeholder="Enter your username"
-          />
+</head>
+
+<body class="min-h-screen transition-colors duration-300 bg-gray-900 text-white">
+    <div id="login-page" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md space-y-6">
+            <h1 class="text-3xl font-bold text-white text-center">Welcome Back</h1>
+            <p class="text-gray-400 text-center">Please enter your details</p>
+            <div class="space-y-4">
+                <div>
+                    <label for="username" class="block text-gray-400 font-medium mb-2">Username</label>
+                    <input type="text" id="username" class="w-full p-3 border border-gray-600 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="Enter your username">
+                </div>
+                <div>
+                    <label for="password" class="block text-gray-400 font-medium mb-2">Password</label>
+                    <input type="password" id="password" class="w-full p-3 border border-gray-600 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="Enter your password">
+                </div>
+                <div class="flex gap-4">
+                    <button id="login-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                        Login
+                    </button>
+                    <button id="register-btn" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                        Register
+                    </button>
+                </div>
+            </div>
         </div>
-        <div class="mb-4">
-          <label for="password" class="block text-gray-700 font-bold mb-2"
-            >Password:</label
-          >
-          <input
-            type="password"
-            id="password"
-            class="w-full p-2 border rounded"
-            placeholder="Enter your password"
-          />
-        </div>
-        <div class="flex justify-between">
-          <button
-            id="login-btn"
-            class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-          >
-            Login
-          </button>
-          <button
-            id="register-btn"
-            class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
-          >
-            Register
-          </button>
-        </div>
-      </div>
     </div>
 
-    <div id="chat-page" class="flex-1 flex hidden flex-col">
-      <div
-        id="message-container"
-        class="h-[calc(100%-120px)] overflow-y-auto mb-4 p-2 border rounded bg-gray-50"
-      ></div>
-      <form id="message-form" class="flex gap-2 p-4">
-        <input
-          type="text"
-          id="message-input"
-          class="flex-1 p-2 border rounded"
-          placeholder="Type your message..."
-        />
-        <button
-          type="submit"
-          class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-        >
-          Send
-        </button>
-      </form>
+    <div id="chat-page" class="hidden h-screen flex flex-col">
+        <!-- Header -->
+        <div id="header" class="bg-gray-800 shadow-sm p-4 flex items-center justify-between transition-colors duration-300">
+            <h1 class="text-xl font-semibold text-white">Chat Room</h1>
+            <div class="flex items-center gap-4">
+                <div class="text-sm text-gray-400" id="user-info"></div>
+                <button id="logout-btn" class="text-sm text-red-500 hover:text-red-600 font-medium">Logout</button>
+            </div>
+        </div>
+
+        <!-- Messages Container -->
+        <div class="flex-1 bg-gray-900 p-4 overflow-hidden flex flex-col transition-colors duration-300" id="messages-bg">
+            <div id="message-container" class="flex-1 overflow-y-auto space-y-4"></div>
+            <div id="typing-indicator" class="text-gray-400 mt-2"></div>
+        </div>
+
+        <!-- Message Input -->
+        <div id="input-container" class="bg-gray-800 border-t border-gray-700 p-4 transition-colors duration-300">
+            <form id="message-form" class="flex gap-3" autocomplete="off">
+                <input type="text" id="message-input" class="flex-1 p-3 border border-gray-600 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="Type your message..." maxlength="250" autocomplete="off">
+                <button type="submit" id="send-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 rounded-lg transition duration-200 flex items-center justify-center">
+                    Send
+                </button>
+            </form>
+        </div>
     </div>
 
     <script>
-      const socket = io();
-      let currentUser = null;
-      // Login/Register
-      document.getElementById("login-btn").addEventListener("click", () => {
-        const username = document.getElementById("username").value;
-        const password = document.getElementById("password").value;
-        socket.emit("login", { username, password });
-      });
+        const socket = io();
+        let currentUser = null;
+        let unread = 0;
+        let userColors = new Map();
+        let typingUsers = new Set();
 
-      document.getElementById("register-btn").addEventListener("click", () => {
-        const username = document.getElementById("username").value;
-        const password = document.getElementById("password").value;
-        socket.emit("register", { username, password });
-      });
+        // List of distinct colors for usernames
+        const userColorsList = [
+            "#E53E3E", // red
+            "#38A169", // green
+            "#805AD5", // purple
+            "#D69E2E", // yellow
+            "#3182CE", // blue
+            "#DD6B20", // orange
+            "#319795", // teal
+            "#B83280", // pink
+            "#5A67D8", // indigo
+            "#718096", // gray
+        ];
 
-      socket.on("authenticated", (user) => {
-        currentUser = user;
-        document.getElementById("login-page").classList.add("hidden");
-        document.getElementById("chat-page").classList.remove("hidden");
-      });
+        let nextColorIndex = 0;
 
-      socket.on("registered", (user) => {
-        currentUser = user;
-        document.getElementById("login-page").classList.add("hidden");
-        document.getElementById("chat-page").classList.remove("hidden");
-      });
-      socket.on("registration_failed", () => {
-        alert("Register failed. Try another username.");
-      });
-      socket.on("authentication_failed", () => {
-        alert("Authentication failed. Wrong password or username.");
-      });
-      socket.on("message_history", (messages) => {
-        const messageContainer = document.getElementById("message-container");
-        messageContainer.innerHTML = "";
-
-        messages.forEach((message) => {
-          const messageElement = document.createElement("div");
-          messageElement.classList.add("mb-2", "p-2", "rounded");
-          if (message.senderId === currentUser?.id) {
-            messageElement.classList.add("bg-blue-100");
-          } else {
-            messageElement.classList.add("bg-gray-200");
-          }
-          messageElement.innerHTML = `
-          <span class="font-bold">${message.username}:</span>
-          <span>${message.message}</span>
-        `;
-          messageContainer.appendChild(messageElement);
-        });
-        messageContainer.scrollTop = messageContainer.scrollHeight;
-      });
-
-      socket.on("message_received", (message) => {
-        const messageElement = document.createElement("div");
-        messageElement.classList.add("mb-2", "p-2", "rounded");
-        if (message.senderId === currentUser?.id) {
-          messageElement.classList.add("bg-blue-100");
-        } else {
-          messageElement.classList.add("bg-gray-200");
+        function getColorForUser(username) {
+            if (!userColors.has(username)) {
+                userColors.set(username, userColorsList[nextColorIndex]);
+                nextColorIndex = (nextColorIndex + 1) % userColorsList.length;
+            }
+            return userColors.get(username);
         }
-        messageElement.innerHTML = `
-        <span class="font-bold">${message.username}:</span>
-        <span>${message.message}</span>
-      `;
-        document
-          .getElementById("message-container")
-          .appendChild(messageElement);
-        document.getElementById("message-container").scrollTop =
-          document.getElementById("message-container").scrollHeight;
-      });
 
-      document
-        .getElementById("message-form")
-        .addEventListener("submit", (e) => {
-          e.preventDefault();
-          const messageInput = document.getElementById("message-input");
-          const message = messageInput.value.trim();
-          if (message && currentUser) {
-            socket.emit("send_message", { message });
-            messageInput.value = "";
-          }
+        // Check for saved login credentials
+        const savedUsername = localStorage.getItem("username");
+        const savedPassword = localStorage.getItem("password");
+        if (savedUsername && savedPassword) {
+            document.getElementById("username").value = savedUsername;
+            document.getElementById("password").value = savedPassword;
+            document.getElementById("login-btn").click();
+        }
+
+        let lastMessageSender = null;
+
+        function appendMessage(message) {
+            const messageContainer = document.getElementById("message-container");
+            const isSent = message.username === currentUser?.username;
+            const showUsername = message.username !== lastMessageSender;
+
+            const messageElement = document.createElement("div");
+            messageElement.classList.add(
+                "message-bubble",
+                "p-3",
+                "rounded-lg",
+                "max-w-[80%]",
+            );
+            if (isSent) {
+                messageElement.classList.add(
+                    "sent",
+                    "ml-auto",
+                    "bg-blue-600",
+                    "text-white",
+                );
+            } else {
+                messageElement.classList.add(
+                    "received",
+                    "bg-gray-700",
+                );
+            }
+
+            const usernameText = isSent ? "You" : message.username;
+            const usernameColor = isSent ? "text-white font-bold" : `text-gray-400`;
+
+            messageElement.innerHTML = `
+       <div class="message-bubble p-1 rounded-lg max-w-[80%]">
+  ${
+    showUsername
+      ? `
+    <div class="text-sm mb-1 ${
+        isSent
+          ? "text-white font-bold"
+          : `text-gray-400" style="color: ${getColorForUser(message.username)}"`
+      }">
+      ${isSent ? "You" : message.username}
+    </div>
+  `
+      : ""
+  }
+  <div class="text-base ${isSent ? "text-white" : "text-white"}">
+    ${message.message}
+  </div>
+</div>
+      `;
+            messageContainer.appendChild(messageElement);
+            lastMessageSender = message.username;
+        }
+
+        function updateTypingIndicator() {
+            const typingIndicator = document.getElementById("typing-indicator");
+            if (typingUsers.size === 0) {
+                typingIndicator.textContent = "";
+            } else if (typingUsers.size === 1) {
+                typingIndicator.textContent = `${Array.from(typingUsers)[0]} is typing...`;
+            } else if (typingUsers.size === 2) {
+                const [user1, user2] = Array.from(typingUsers);
+                typingIndicator.textContent = `${user1} and ${user2} are typing...`;
+            } else {
+                typingIndicator.textContent = "Several people are typing...";
+            }
+        }
+
+        socket.on("message_history", (messages) => {
+            const messageContainer = document.getElementById("message-container");
+            messageContainer.innerHTML = "";
+            lastMessageSender = null;
+
+            messages.forEach((message) => {
+                appendMessage(message);
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            });
+        });
+        socket.on("message_received", (message) => {
+            const messageContainer = document.getElementById("message-container");
+
+            if (!document.hasFocus()) {
+                unread++;
+                document.title = `Chat${unread !== 0 ? ` (${unread})` : ""}`;
+            }
+            appendMessage(message);
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        });
+
+        socket.on("user_started_typing", (username) => {
+            typingUsers.add(username);
+            updateTypingIndicator();
+        });
+
+        socket.on("user_stopped_typing", (username) => {
+            typingUsers.delete(username);
+            updateTypingIndicator();
+        });
+
+        document.getElementById("logout-btn").addEventListener("click", () => {
+            currentUser = null;
+            document.getElementById("chat-page").classList.add("hidden");
+            document.getElementById("login-page").classList.remove("hidden");
+            document.getElementById("username").value = "";
+            document.getElementById("password").value = "";
+            localStorage.removeItem("username");
+            localStorage.removeItem("password");
+            socket.disconnect();
+            socket.connect();
+        });
+
+        window.onfocus = () => {
+            unread = 0;
+            document.title = `Chat${unread !== 0 ? ` (${unread})` : ""}`;
+        };
+
+        [username, password].forEach((input) => {
+            input.addEventListener("keypress", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    document.getElementById("login-btn").click();
+                }
+            });
+        });
+
+        let typingTimeout = null;
+
+        document.getElementById("message-input").addEventListener("input", () => {
+            if (currentUser) {
+                socket.emit("user_started_typing", currentUser.username);
+
+                // Clear any existing timeout
+                if (typingTimeout) {
+                    clearTimeout(typingTimeout);
+                }
+
+                // Set a new 5-second timeout to emit "user_stopped_typing"
+                typingTimeout = setTimeout(() => {
+                    if (currentUser) {
+                        socket.emit("user_stopped_typing", currentUser.username);
+                    }
+                    typingTimeout = null;
+                }, 3000);
+            }
+        });
+
+        document.getElementById("message-form").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const messageInput = document.getElementById("message-input");
+            const message = messageInput.value.trim();
+            if (message && currentUser) {
+                socket.emit("send_message", {
+                    message
+                });
+                messageInput.value = "";
+
+                if (typingTimeout) {
+                    clearTimeout(typingTimeout);
+                    typingTimeout = null;
+                    socket.emit("user_stopped_typing", currentUser.username);
+                }
+            }
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.ctrlKey && e.key.toLowerCase() === "q") {
+                document.body.style.display = "hidden"
+                window.location.href = "https://classroom.google.com/";
+            }
+        });
+
+        document.getElementById("login-btn").addEventListener("click", () => {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            socket.emit("login", {
+                username,
+                password
+            });
+            localStorage.setItem("username", username);
+            localStorage.setItem("password", password);
+        });
+
+        document.getElementById("register-btn").addEventListener("click", () => {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            socket.emit("register", {
+                username,
+                password
+            });
+        });
+
+        socket.on("authenticated", (user) => {
+            currentUser = user;
+            document.getElementById("login-page").classList.add("hidden");
+            document.getElementById("chat-page").classList.remove("hidden");
+            document.getElementById("user-info").textContent =
+                `Logged in as ${user.username}`;
+            getColorForUser(user.username);
+        });
+
+        socket.on("registered", (user) => {
+            currentUser = user;
+            document.getElementById("login-page").classList.add("hidden");
+            document.getElementById("chat-page").classList.remove("hidden");
+            document.getElementById("user-info").textContent =
+                `Logged in as ${user.username}`;
+            getColorForUser(user.username);
+        });
+
+        socket.on("registration_failed", () => {
+            alert("Registration failed. Try another username.");
+        });
+
+        socket.on("authentication_failed", () => {
+            alert("Authentication failed. Wrong password or username.");
         });
     </script>
-  </body>
+</body>
+
 </html>

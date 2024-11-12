@@ -13,6 +13,7 @@
 
             body {
                 font-size: 1rem;
+                overflow: hidden;
             }
 
             h1 {
@@ -127,27 +128,39 @@
                 <div
                     class="p-4 border-b border-gray-700 flex items-center justify-between"
                 >
-                    <div class="flex items-center">
-                        <div class="text-lg font-semibold">Chats</div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <div class="text-sm text-gray-400" id="user-info"></div>
-                        <button
+                                        <div class="flex items-center gap-4 overflow-scroll">
+
+                    <div class="flex items-center gap-2 text-gray-400 text-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span id="user-info">username</span>
+                    </div>             
+                    <button
                             id="logout-btn"
                             class="text-sm text-red-500 hover:text-red-600 font-medium"
                         >
                             Logout
+                        </button>
+                        <button
+                            id="delete-account-btn"
+                            class="text-sm bg-red-500 text-grey-600 font-bold rounded p-2"
+                        >
+                            Delete Account
                         </button>
                     </div>
                 </div>
 
                 <!-- Create Chat Button -->
                 <button
-                    id="create-chat-btn"
-                    class="m-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
-                >
-                    Create New Chat
-                </button>
+                  id="create-chat-btn"
+  class="m-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center gap-2"
+>
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+  </svg>
+  <span>Create New Chat</span>
+</button>
 
                 <!-- Chat List -->
                 <div class="chat-list flex-1 overflow-y-auto">
@@ -161,12 +174,9 @@
                 <div
                     class="chat-header bg-gray-800 shadow-sm p-4 flex items-center justify-between"
                 >
-                    <div class="flex items-center gap-4">
-                        <h1 class="text-xl font-semibold">Select a chat</h1>
-                        <button
-                            id="chat-settings-btn"
-                            class="text-gray-400 hover:text-white"
-                        >
+                   <div class="flex items-center gap-4 overflow-hidden">
+                        <h1 class="text-xl font-semibold truncate">Chat Name</h1>
+                        <button id="chat-settings-btn" class="text-gray-400 hover:text-white">
                             Settings
                         </button>
                     </div>
@@ -242,7 +252,7 @@
                     >
                         Delete Chat
                     </button>
-                    <small>note: only admin can delete chat | admin cannot leave chat</small>
+                                        <small class="text-gray-300">Only admin can delete chat<br>Admin cannot leave chat</small>
                 </div>
 
                 <button
@@ -256,28 +266,8 @@
 
         <script>
             const socket = io();
-            socket.on("connect", () => {
-                console.log("Connected to the server.");
 
-                currentUser = null;
-                document
-                    .getElementById("chat-page")
-                    .classList.add("hidden");
-                document
-                    .getElementById("login-page")
-                    .classList.remove("hidden");
-                currentUser = null;
-                currentChat = null;
-                userChats = [];
-                unread = 0;
-                userColors = new Map();
-                const savedUsername = localStorage.getItem("username");
-                const savedPassword = localStorage.getItem("password");
-                if (savedUsername && savedPassword) {
-                    document.getElementById("username").value = savedUsername;
-                    document.getElementById("password").value = savedPassword;
-                }
-            })
+            const version = "v0.4.0";
             let currentUser = null;
             let currentChat = null;
             let userChats = [];
@@ -306,6 +296,33 @@
                 document.getElementById("username").value = savedUsername;
                 document.getElementById("password").value = savedPassword;
             }
+            socket.on("version",(v)=>{
+                if(v!==version){
+                    alert(`Client out of date. Server running ${v} while client on ${version}.`)
+                }
+            })
+            socket.on("connect", () => {
+                console.log("Connected to the server.");
+
+                currentUser = null;
+                document
+                    .getElementById("chat-page")
+                    .classList.add("hidden");
+                document
+                    .getElementById("login-page")
+                    .classList.remove("hidden");
+                currentUser = null;
+                currentChat = null;
+                userChats = [];
+                unread = 0;
+                userColors = new Map();
+                const savedUsername = localStorage.getItem("username");
+                const savedPassword = localStorage.getItem("password");
+                if (savedUsername && savedPassword) {
+                    document.getElementById("username").value = savedUsername;
+                    document.getElementById("password").value = savedPassword;
+                }
+            })
 
             function triggerScroll(element) {
                 if (
@@ -338,13 +355,12 @@
                     message.senderId == "SERVER"
                 ) {
                     const messageElement = document.createElement("div");
+                    messageElement.classList.add("max-w-[80%]", "break-all")
                     messageElement.innerHTML = `<div class="p-1 rounded-lg w-80 mx-auto text-center text-sm text-gray-200 bg-gray-700">
-  <div class="text-sm">
-    ${message.message}
-  </div>
-</div>
-
-                          `;
+                                                    <div class="text-sm">
+                                                        ${message.message}
+                                                    </div>
+                                                </div>`;
                     messageContainer.appendChild(messageElement);
                     lastMessageSender = null;
                     triggerScroll(messageContainer);
@@ -386,7 +402,7 @@
                               `
                                       : ""
                               }
-                              <div class="text-base ${isSent ? "text-white" : "text-white"}">
+                              <div class="text-base text-wrap break-words ${isSent ? "text-white" : "text-white"}">
                                   ${message.message}
                               </div>
                       `;
@@ -422,9 +438,9 @@
                         : "No messages yet";
 
                     chatElement.innerHTML = `
-                              <div class="font-semibold">${chat.name}</div>
-                              <div class="text-sm text-gray-400">Last message: ${lastMessage}</div>
-                              <div class="text-xs text-gray-500">${chat.participants.length} members</div>
+                              <div class="font-semibold text-wrap break-all overflow-hidden truncate">${chat.name.slice(0,25)}${chat.name.length>25?"...":""}</div>
+                              <div class="text-sm text-gray-400 text-wrap break-all overflow-hidden truncate">Last message: ${lastMessage.slice(0,20)}${lastMessage.length>20?"...":""}</div>
+                              <div class="text-xs text-gray-500 text-wrap break-all overflow-hidden truncate">${chat.participants.length} members</div>
                           `;
 
                     chatElement.addEventListener("click", () => {
@@ -466,11 +482,32 @@
 
                 document.getElementById("chat-details").innerHTML =
                     getChatDetails(chat);
+                const isAdmin = chat.admin.id === currentUser.id;
+                if(isAdmin){
+                    
                 document.getElementById("delete-chat-btn").disabled =
-                    chat.admin.id !== currentUser.id;
+                    false;
+                
+                document.getElementById("delete-chat-btn").classList.remove("hidden");
+                
                 document.getElementById("leave-chat-btn").disabled =
-                    chat.admin.id === currentUser.id;
+                    true;
+                    
+                document.getElementById("leave-chat-btn").classList.add("hidden");
 
+                }else{
+                
+                document.getElementById("delete-chat-btn").disabled =
+                    true;
+                
+                document.getElementById("delete-chat-btn").classList.add("hidden");
+                
+                document.getElementById("leave-chat-btn").disabled =
+                    false;
+                    
+                document.getElementById("leave-chat-btn").classList.remove("hidden");
+
+                }
                 document.querySelector(".chat-header h1").textContent =
                     chat.name;
                 document.querySelector(".chat-header .text-sm").textContent =
@@ -478,7 +515,6 @@
             }
 
             function toHome() {
-                currentChat = null;
                 document.getElementById("message-container").innerHTML =
                     userChats.length == 0
                         ? `<div class="flex flex-col items-center justify-center h-screen bg-gray-900 text-white">
@@ -503,11 +539,18 @@
                 } else {
                     userChats = chats;
                 }
-
+                
                 const index = userChats.findIndex((chat) => chat.id === currentChat?.id)
                 if(index > -1){
                     currentChat = userChats[index];
+                    document.querySelector(".chat-header h1").textContent =
+                        currentChat.name;
+                    document.querySelector(
+                        ".chat-header .text-sm",
+                        ).textContent = `${currentChat.participants.length} members`;
+                    
                 }
+                
                 renderChatList();
 
             });
@@ -539,7 +582,7 @@
                 document.getElementById("login-page").classList.add("hidden");
                 document.getElementById("chat-page").classList.remove("hidden");
                 document.getElementById("user-info").textContent =
-                    `Logged in as ${user.username}`;
+                    `${user.username}`;
                 getColorForUser(user.username);
                 toHome();
             });
@@ -549,7 +592,7 @@
                 document.getElementById("login-page").classList.add("hidden");
                 document.getElementById("chat-page").classList.remove("hidden");
                 document.getElementById("user-info").textContent =
-                    `Logged in as ${user.username}`;
+                    `${user.username}`;
                 getColorForUser(user.username);
                 toHome();
             });
@@ -569,7 +612,7 @@
             socket.on("user_added", (data) => {
                 const { chatId, userId } = data;
                 const chat = userChats.find((chat) => chat.id === chatId);
-                if (currentChat && currentChat?.id == chat.id) {
+                if (currentChat?.id == chat.id) {
                     document.querySelector(".chat-header h1").textContent =
                         chat.name;
                     document.querySelector(
@@ -619,6 +662,17 @@
             socket.on("leave_chat_failed", () => {
                 alert(`Failed to leave chat.`);
             });
+            
+            socket.on("account_deleted",()=>{
+                alert("account deleted")
+                document.getElementById('logout-btn').click()
+            })
+
+            socket.on("account_failed_to_delete",()=>{
+                alert("Account failed to delete.")
+            })
+
+            
 
             document
                 .getElementById("login-btn")
@@ -709,6 +763,14 @@
                     localStorage.removeItem("password");
                     socket.disconnect();
                     socket.connect();
+                });
+
+            document
+                .getElementById("delete-account-btn")
+                .addEventListener("click", () => {
+                    if(confirm(`Are you sure you want to delete your account? All chats where you are the admin will be deleted.`)){
+                        socket.emit("delete_account");
+                    }
                 });
 
             document

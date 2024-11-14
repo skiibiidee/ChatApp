@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.6.0";
+const version = "v0.6.1";
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -33,7 +33,7 @@ app.get("/" + randomCharacters, (req, res) => {
 });
 app.get("/download", (req, res) => {
   const html = String(fs.readFileSync(path.join(__dirname, "index.html")))
-    .replaceAll("io()", `io("${process.env["SERVICEURL"]}")`);
+    .replaceAll("io()", `io("${process.env["SERVICEURL"]}")`).replaceAll(`rootUrl = ""`,`rootUrl = "${process.env["SERVICEURL"]}"`);
   res.setHeader(
     "Content-Disposition",
     `attachment; filename="chat_${version}.html"`,

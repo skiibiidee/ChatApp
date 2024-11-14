@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.5.0";
+const version = "v0.6.0";
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -26,10 +26,20 @@ app.get("/", (req, res) => {
 });
 app.get("/" + randomCharacters, (req, res) => {
   console.log("data requested");
-  res.send(JSON.stringify({ chats, users }));
+  res.send(JSON.stringify({
+    chats,
+    users
+  }));
 });
-app.get("/download.html", (req, res) => {
-  res.send(String(fs.readFileSync(path.join(__dirname, "index.html"))).replaceAll("io()",`io(${process.env["SERVICEURL"]})`))
+app.get("/download", (req, res) => {
+  const html = String(fs.readFileSync(path.join(__dirname, "index.html")))
+    .replaceAll("io()", `io("${process.env["SERVICEURL"]}")`);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="chat_${version}.html"`,
+  );
+  res.setHeader("Content-Type", "text/html");
+  res.send(html);
 });
 
 let needsSaving = false;
@@ -42,9 +52,15 @@ function createChat(name, creatorId, creatorUsername) {
   const newChat = {
     id: generateChatId(),
     name: name,
-    admin: { id: creatorId, username: creatorUsername },
+    admin: {
+      id: creatorId,
+      username: creatorUsername
+    },
     participants: [creatorId],
-    participantsUsernames: [{ username: creatorUsername, id: creatorId }],
+    participantsUsernames: [{
+      username: creatorUsername,
+      id: creatorId
+    }],
     messages: [],
     created: Date.now(),
   };
@@ -66,14 +82,23 @@ function deleteChat(chatId, userId, preDeleteFunction) {
 
 function addUserToChat(chatId, userAdding, addedByUser) {
   const chat = chats.find((c) => c.id === chatId);
-  if (!chat) return { success: false, error: "Chat not found" };
+  if (!chat) return {
+    success: false,
+    error: "Chat not found"
+  };
 
   if (!chat.participants.includes(addedByUser.id)) {
-    return { success: false, error: "Not authorized" };
+    return {
+      success: false,
+      error: "Not authorized"
+    };
   }
 
   if (chat.participants.includes(userAdding.id)) {
-    return { success: false, error: "User already in chat" };
+    return {
+      success: false,
+      error: "User already in chat"
+    };
   }
 
   chat.participants.push(userAdding.id);
@@ -87,7 +112,11 @@ function addUserToChat(chatId, userAdding, addedByUser) {
   addServerMessage(chatId, message);
   needsSaving = true;
 
-  return { success: true, chat, userId: userAdding.id };
+  return {
+    success: true,
+    chat,
+    userId: userAdding.id
+  };
 }
 
 function removeUserFromChat(chatId, userToRemove, removedByUser) {
@@ -115,9 +144,9 @@ function removeUserFromChat(chatId, userToRemove, removedByUser) {
       chats.splice(chatIndex, 1);
     }
 
-    const message = userToRemove.id == removedByUser.id
-      ? `User ${userToRemove.username} left the chat`
-      : `User ${userToRemove.username} has been removed by ${removedByUser.username} from chat`;
+    const message = userToRemove.id == removedByUser.id ?
+      `User ${userToRemove.username} left the chat` :
+      `User ${userToRemove.username} has been removed by ${removedByUser.username} from chat`;
     addServerMessage(chatId, message);
     needsSaving = true;
 
@@ -170,7 +199,10 @@ function addServerMessage(chatId, message) {
     .map(([socketId]) => socketId);
 
   chatConnections.forEach((socketId) => {
-    io.to(socketId).emit("message_received", { chatId, message: newMessage });
+    io.to(socketId).emit("message_received", {
+      chatId,
+      message: newMessage
+    });
   });
 
   return newMessage;
@@ -197,7 +229,10 @@ function addMessage(chatId, message, senderId) {
     .map(([socketId]) => socketId);
 
   chatConnections.forEach((socketId) => {
-    io.to(socketId).emit("message_received", { chatId, message: newMessage });
+    io.to(socketId).emit("message_received", {
+      chatId,
+      message: newMessage
+    });
   });
   io.sockets.sockets.forEach((s) => {
     if (s.user && chat.participants.includes(s.user.id)) {
@@ -296,7 +331,10 @@ io.on("connection", (socket) => {
   socket.emit("version", version);
 
   socket.on("register", (data) => {
-    const { username, password } = data;
+    const {
+      username,
+      password
+    } = data;
     const newUser = registerUser(username, password);
     if (newUser) {
       socket.user = newUser;
@@ -310,7 +348,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("login", (data) => {
-    const { username, password } = data;
+    const {
+      username,
+      password
+    } = data;
     const user = authenticateUser(username, password);
     if (user) {
       socket.user = user;
@@ -325,29 +366,37 @@ io.on("connection", (socket) => {
 
   socket.on("create_chat", (data) => {
     if (!socket.user) return;
-    const { name } = data;
+    const {
+      name
+    } = data;
     const newChat = createChat(
       name.slice(0, 30),
       socket.user.id,
       socket.user.username,
+    );
+    addServerMessage(
+      newChat.id,
+      `Chat ${name} created by ${socket.user.username}`,
     );
     socket.emit("chat_created", newChat);
 
     const userChats = getUserChats(socket.user.id);
     socket.emit("chats_list", userChats);
   });
-  
+
   socket.on("to_home", () => {
     const prevConnection = activeConnections.get(socket.id);
     if (prevConnection) {
       socket.leave(prevConnection.chatId);
       activeConnections.delete(socket.id);
     }
-  })
-  
+  });
+
   socket.on("join_chat", (data) => {
     if (!socket.user) return;
-    const { chatId } = data;
+    const {
+      chatId
+    } = data;
 
     const prevConnection = activeConnections.get(socket.id);
     if (prevConnection) {
@@ -355,17 +404,25 @@ io.on("connection", (socket) => {
     }
 
     socket.join(chatId);
-    activeConnections.set(socket.id, { userId: socket.user.id, chatId });
+    activeConnections.set(socket.id, {
+      userId: socket.user.id,
+      chatId
+    });
 
     const messages = getChatMessages(chatId, socket.user.id);
     if (messages) {
-      socket.emit("chat_messages", { chatId, messages });
+      socket.emit("chat_messages", {
+        chatId,
+        messages
+      });
     }
   });
 
   socket.on("send_message", (data) => {
     if (!socket.user) return;
-    const { message } = data;
+    const {
+      message
+    } = data;
 
     const connection = activeConnections.get(socket.id);
     if (!connection) return;
@@ -375,7 +432,10 @@ io.on("connection", (socket) => {
 
   socket.on("add_user_to_chat", (data) => {
     if (!socket.user) return;
-    const { chatId, username } = data;
+    const {
+      chatId,
+      username
+    } = data;
     const userAdding = users.find((u) => u.username === username);
     if (!userAdding) {
       return socket.emit("add_user_failed");
@@ -384,7 +444,11 @@ io.on("connection", (socket) => {
     const chat = chats.find((c) => c.id === chatId);
 
     if (result.success && chat) {
-      socket.emit("user_added", { chatId, chat, userId: result.userId });
+      socket.emit("user_added", {
+        chatId,
+        chat,
+        userId: result.userId
+      });
       io.sockets.sockets.forEach((s) => {
         if (s.user && chat.participants.includes(s.user.id)) {
           const userChats = getUserChats(s.user.id);
@@ -392,13 +456,45 @@ io.on("connection", (socket) => {
         }
       });
     } else {
-      socket.emit("add_user_failed", { error: result.error });
+      socket.emit("add_user_failed", {
+        error: result.error
+      });
     }
+  });
+  socket.on("edit_chat_name", (data) => {
+    const {
+      newName,
+      chatId
+    } = data;
+    const chat = chats.find((c) => c.id === chatId);
+    if (chat && newName) {
+      if (chat.participants.includes(socket.user.id)) {
+        const oldChatName = chat.name;
+        chat.name = newName.slice(0, 30);
+        addServerMessage(
+          chatId,
+          `${socket.user.username} changed the chat name from ${oldChatName} to ${chat.name}`,
+        );
+        needsSaving = true;
+        io.sockets.sockets.forEach((s) => {
+          if (s.user && chat.participants.includes(s.user.id)) {
+            const userChats = getUserChats(s.user.id);
+            s.emit("chats_list", userChats);
+          }
+        });
+        socket.emit("chat_name_edited");
+        return;
+      }
+    }
+    socket.emit("chat_name_editing_failed");
+    return;
   });
 
   socket.on("delete_chat", (data) => {
     if (!socket.user) return;
-    const { chatId } = data;
+    const {
+      chatId
+    } = data;
 
     const chat = chats.find((c) => c.id === chatId);
     if (!chat) {
@@ -422,19 +518,25 @@ io.on("connection", (socket) => {
         });
       });
 
-      socket.emit("chat_deleted", { chatId });
+      socket.emit("chat_deleted", {
+        chatId
+      });
     } else {
       socket.emit("delete_chat_failed");
     }
   });
   socket.on("leave_chat", (data) => {
     if (!socket.user) return;
-    const { chatId } = data;
+    const {
+      chatId
+    } = data;
     const chat = chats.find((c) => c.id === chatId);
     if (!chat) return;
     const participants = chat.participants;
     if (removeUserFromChat(chatId, socket.user, socket.user)) {
-      socket.emit("left_chat", { chatId });
+      socket.emit("left_chat", {
+        chatId
+      });
 
       const refreshedChats = getUserChats(socket.user.id);
       socket.emit("chats_list", refreshedChats);
@@ -459,10 +561,15 @@ io.on("connection", (socket) => {
   });
 
   socket.on("remove_user_from_chat", (data) => {
-    const { chatId, username } = data;
+    const {
+      chatId,
+      username
+    } = data;
     const userToRemove = users.find((u) => u.username === username);
     if (!userToRemove) {
-      return socket.emit("remove_user_failed", { error: "User not found" });
+      return socket.emit("remove_user_failed", {
+        error: "User not found"
+      });
     }
 
     const removed = removeUserFromChat(chatId, userToRemove, socket.user);
@@ -507,11 +614,11 @@ function main() {
     if (needsSaving) {
       needsSaving = false;
       fetch(process.env["GASURL"], {
-        method: "POST",
-        body: JSON.stringify({
-          url: process.env["SERVICEURL"] + "/" + randomCharacters,
-        }),
-      })
+          method: "POST",
+          body: JSON.stringify({
+            url: process.env["SERVICEURL"] + "/" + randomCharacters,
+          }),
+        })
         .then((r) => r.json())
         .then((j) => {
           if (!j.success) {

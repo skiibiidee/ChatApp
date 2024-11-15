@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.7.0";
+const version = "v0.7.1";
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -149,9 +149,9 @@ function removeUserFromChat(chatId, userToRemove, removedByUser) {
       chats.splice(chatIndex, 1);
     }
 
-    const message = userToRemove.id == removedByUser.id
-      ? `User ${userToRemove.username} left the chat`
-      : `User ${userToRemove.username} has been removed by ${removedByUser.username} from chat`;
+    const message = userToRemove.id == removedByUser.id ?
+      `User ${userToRemove.username} left the chat` :
+      `User ${userToRemove.username} has been removed by ${removedByUser.username} from chat`;
     addServerMessage(chatId, message);
     needsSaving = true;
 
@@ -314,13 +314,13 @@ function deleteUser(userId) {
           const removed = removeUserFromChat(chat.id, user, user);
           if (removed) {
             if (chat) {
-                io.sockets.sockets.forEach((s) => {
-                  if (s.user && chat.participants.includes(s.user.id)) {
-                    const userChats = getUserChats(s.user.id);
-                    s.emit("chats_list", userChats);
-                  }
-                });
-                          }
+              io.sockets.sockets.forEach((s) => {
+                if (s.user && chat.participants.includes(s.user.id)) {
+                  const userChats = getUserChats(s.user.id);
+                  s.emit("chats_list", userChats);
+                }
+              });
+            }
           }
         }
       },
@@ -513,13 +513,13 @@ io.on("connection", (socket) => {
         );
       })
     ) {
-        io.sockets.sockets.forEach((s) => {
-          if (s.user && chat.participants.includes(s.user.id)) {
-            const userChats = getUserChats(s.user.id);
-            s.emit("chats_list", userChats);
-          }
-        });
-      
+      io.sockets.sockets.forEach((s) => {
+        if (s.user && chat.participants.includes(s.user.id)) {
+          const userChats = getUserChats(s.user.id);
+          s.emit("chats_list", userChats);
+        }
+      });
+
       socket.emit("chat_deleted", {
         chatId,
       });
@@ -571,29 +571,40 @@ io.on("connection", (socket) => {
     const participants = chat?.participants;
     const userToRemove = users.find((u) => u.id === userIdToRemove);
     if (!userToRemove) {
-      return socket.emit("remove_user_failed", { user: userToRemove, chatId });
+      return socket.emit("remove_user_failed", {
+        user: userToRemove,
+        chatId
+      });
     }
 
     const removed = removeUserFromChat(chatId, userToRemove, socket.user);
     if (removed) {
 
       if (chat && participants) {
-          io.sockets.sockets.forEach((s) => {
-            if (s.user && participants.includes(s.user.id)) {
-              const userChats = getUserChats(s.user.id);
-              s.emit("chats_list", userChats);
-            }
-            if(s?.user?.id === userIdToRemove){
-              const userChats = getUserChats(s.user.id);
-              s.emit("chats_list", userChats);
-              s.emit("removed_from_chat", {chatId})
-            }
-          });
-        
-        socket.emit("user_removed", { user: userToRemove, chatId });
+        io.sockets.sockets.forEach((s) => {
+          if (s.user && participants.includes(s.user.id)) {
+            const userChats = getUserChats(s.user.id);
+            s.emit("chats_list", userChats);
+          }
+          if (s?.user?.id === userIdToRemove) {
+            const userChats = getUserChats(s.user.id);
+            s.emit("chats_list", userChats);
+            s.emit("removed_from_chat", {
+              chatId
+            })
+          }
+        });
+
+        socket.emit("user_removed", {
+          user: userToRemove,
+          chatId
+        });
       }
     } else {
-      socket.emit("remove_user_failed", { user: userToRemove, chatId });
+      socket.emit("remove_user_failed", {
+        user: userToRemove,
+        chatId
+      });
     }
   });
 
@@ -623,11 +634,11 @@ function main() {
     if (needsSaving) {
       needsSaving = false;
       fetch(process.env["GASURL"], {
-        method: "POST",
-        body: JSON.stringify({
-          url: process.env["SERVICEURL"] + "/" + randomCharacters,
-        }),
-      })
+          method: "POST",
+          body: JSON.stringify({
+            url: process.env["SERVICEURL"] + "/" + randomCharacters,
+          }),
+        })
         .then((r) => r.json())
         .then((j) => {
           if (!j.success) {

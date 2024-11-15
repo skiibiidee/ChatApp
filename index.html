@@ -84,21 +84,8 @@
       background-color: rgba(0, 0, 0, 0.7);
     }
 
-    .message-bubble {
-      position: relative;
-    }
 
-    .timestamp {
-      position: absolute;
-      bottom: 1px;
-      right: 6px;
-      /* Distance from the right of the bubble */
-      font-size: 0.6rem;
-      /* Small size for the timestamp */
-      color: rgba(255, 255, 255, 0.7);
-      /* Slightly faded white */
-      font-family: Arial, sans-serif;
-    }
+
 
     @keyframes fadeIn {
       from {
@@ -329,7 +316,7 @@
     const socket = io();
     const rootUrl = "";
 
-    const version = "v0.7.0";
+    const version = "v0.7.1";
     let currentUser = null;
     let currentChat = null;
     let userChats = [];
@@ -420,8 +407,15 @@
       }
       return userColors.get(username);
     }
+    let msgsSinceLastShow = 0;
+    let msgLastTimestamp = 0;
+    let lastMessageDay = null;
 
     function appendMessage(message, bulk) {
+      if (lastMessageDay !== formatDateToYearMonthDay(new Date(message.timestamp))) {
+        lastMessageDay = formatDateToYearMonthDay(new Date(message.timestamp))
+        addTimeDisplay(message.timestamp)
+      }
       const messageContainer =
         document.getElementById("message-container");
       if (
@@ -437,25 +431,32 @@
                                                               </div>`;
         messageContainer.appendChild(messageElement);
         lastMessageSender = null;
-        triggerScroll();
+        if (!bulk) {
+          triggerScroll();
+        }
         return;
       }
       const isSent = message.username === currentUser?.username;
-      const showUsername = message.username !== lastMessageSender;
+      let showUsername = message.username !== lastMessageSender || message.timestamp - msgLastTimestamp >= 5 * 60 * 1000;
 
+      if (!showUsername) msgsSinceLastShow++;
+      if (msgsSinceLastShow > 20 || showUsername) {
+        showUsername = true;
+        msgsSinceLastShow = 0;
+      }
       const msgOuter = document.createElement("div");
-      msgOuter.classList.add("w-100", "flex")
+      msgOuter.classList.add("w-100", "flex");
       const messageElement = document.createElement("div");
       messageElement.classList.add(
         "message-bubble",
-        "p-4",
+        "p-2",
         "rounded-lg",
         "max-w-[80%]",
-        "min-w-[40ch]",
+        "min-w-[25ch]",
         "inline-block",
         "w-auto",
-
-
+        "justify-center",
+        "relative" // To position the triangle relative to the message bubble
       );
 
       if (isSent) {
@@ -464,50 +465,121 @@
           "right-0",
           "bg-blue-600",
           "text-white",
+          "ml-auto",
         );
-        msgOuter.classList.add("justify-end")
+        msgOuter.classList.add("justify-end");
+        messageElement.style = "border-top-right-radius: 0%;";
       } else {
-        messageElement.classList.add("received", "bg-gray-700");
-      }
-      if (showUsername) {
         messageElement.classList.add(
-          "mt-4")
-      } else {
+          "received",
+          "bg-gray-700",
+        );
+        messageElement.style = "border-top-left-radius: 0%;";
 
-        messageElement.classList.add(
-          "mt-2")
+      }
+
+      if (showUsername) {
+        messageElement.classList.add("mt-4");
+      } else {
+        messageElement.classList.add("mt-2");
       }
 
       messageElement.innerHTML = `
-                                            ${
-                                                showUsername
-                                                    ? `
-                                                <div class="mb-1 ${
-                                                    isSent
-                                                        ? `text-white text-base font-bold"`
-                                                        : `text-gray-400 text-base font-bold" style="color: ${getColorForUser(message.username)}"`
-                                                }">
-                                                    ${isSent ? "You" : message.username}
-                                                </div>
-                                            `
-                                                    : ""
-                                            }
-                                            <div class="text-base text-wrap break-words ${isSent ? "text-white" : "text-white"}">
-                                                ${message.message}
-                                            </div>
-                                              <span class="timestamp absolute bottom-1 right-3 text-xs text-gray-300">
-                          ${new Date(message.timestamp).toISOString()}
-                          </span>
-                          
-                                                                 
-                                    `;
-      msgOuter.appendChild(messageElement)
+  ${
+    showUsername
+      ? `
+      <div class="mb-1 flex items-center justify-between">
+          <span class="${
+            isSent
+              ? `text-white text-base font-bold`
+              : `text-gray-400 text-base font-bold" style="color: ${getColorForUser(message.username)}`
+          }">${isSent ? "You" : message.username}</span>
+          <span class="ml-5 text-sm text-gray-300">
+            ${getTimestamp(message.timestamp)}
+          </span>
+      </div>`
+      : ""
+  }
+  <div class="text-base text-wrap break-words ${isSent ? "text-white" : "text-white"}">
+    ${message.message}
+  </div>
+`;
+
+      msgOuter.appendChild(messageElement);
       messageContainer.appendChild(msgOuter);
+
       lastMessageSender = message.username;
+      msgLastTimestamp = message.timestamp;
       if (!bulk) {
         triggerScroll();
       }
+
+      function addTimeDisplay(timestamp) {
+        const d = new Date(timestamp);
+
+        const messageElement = document.createElement("div");
+        messageElement.classList.add("w-100", "mt-4", "break-all")
+        messageElement.innerHTML = `<div class="p-1 rounded-lg w-40 mx-auto text-center text-sm text-gray-100 bg-gray-500">
+                                                                  <div class="text-sm">
+                                                                      ${d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                                  </div>
+                                                              </div>`;
+        document.getElementById("message-container").appendChild(messageElement);
+        lastMessageSender = null;
+      }
+
+      function formatDateToYearMonthDay(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-based, so add 1
+        const day = String(date.getDate()).padStart(2, '0'); // Pad single-digit days with leading zero
+
+        return `${year}${month}${day}`; // Format as yyyyMMdd
+      }
+
+      function getTimestamp(timestamp) {
+        const d = new Date(timestamp);
+        const now = new Date();
+
+        // Helper function to format date as dd/mm/yy hh:mm
+        function formatDate(date) {
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const year = String(date.getFullYear()).slice(2); // Get last 2 digits of year
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          return `${day}/${month}/${year} ${hours}:${minutes}`;
+        }
+
+        // Check if the date is today
+        const isSameDay = d.toDateString() === now.toDateString();
+        if (isSameDay) {
+          return formatDate(d).slice(9); // Only return the time part (hh:mm)
+        }
+
+        // Check if the date is yesterday
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        const isYesterday = d.toDateString() === yesterday.toDateString();
+        if (isYesterday) {
+          return `Yesterday at ${formatDate(d).slice(9)}`; // Only return the time part (hh:mm)
+        }
+
+        // Check if the date is within the past 7 days but not today or yesterday
+        const weekAgo = new Date(now);
+        weekAgo.setDate(now.getDate() - 7);
+        if (d > weekAgo) {
+          // Get the day of the week (e.g., "Monday")
+          const dayOfWeek = d.toLocaleString('en-us', {
+            weekday: 'long'
+          });
+          return `${dayOfWeek} at ${formatDate(d).slice(9)}`; // Return "Day at hh:mm"
+        }
+
+        // If the date is older than a week, return the formatted date (dd/mm/yy hh:mm)
+        return formatDate(d);
+      }
     }
+
 
     function renderChatList() {
       const chatList = document.querySelector(".chat-list");
@@ -522,7 +594,6 @@
           "p-4",
           "border-b",
           "border-gray-700",
-          "hover:bg-gray-700",
           "cursor-pointer",
         );
 

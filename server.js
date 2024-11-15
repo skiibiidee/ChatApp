@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.6.1";
+const version = "v0.7.0";
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -28,12 +28,15 @@ app.get("/" + randomCharacters, (req, res) => {
   console.log("data requested");
   res.send(JSON.stringify({
     chats,
-    users
+    users,
   }));
 });
 app.get("/download", (req, res) => {
   const html = String(fs.readFileSync(path.join(__dirname, "index.html")))
-    .replaceAll("io()", `io("${process.env["SERVICEURL"]}")`).replaceAll(`rootUrl = ""`,`rootUrl = "${process.env["SERVICEURL"]}"`);
+    .replaceAll("io()", `io("${process.env["SERVICEURL"]}")`).replaceAll(
+      `rootUrl = ""`,
+      `rootUrl = "${process.env["SERVICEURL"]}"`,
+    );
   res.setHeader(
     "Content-Disposition",
     `attachment; filename="chat_${version}.html"`,
@@ -54,12 +57,12 @@ function createChat(name, creatorId, creatorUsername) {
     name: name,
     admin: {
       id: creatorId,
-      username: creatorUsername
+      username: creatorUsername,
     },
     participants: [creatorId],
     participantsUsernames: [{
       username: creatorUsername,
-      id: creatorId
+      id: creatorId,
     }],
     messages: [],
     created: Date.now(),
@@ -82,22 +85,24 @@ function deleteChat(chatId, userId, preDeleteFunction) {
 
 function addUserToChat(chatId, userAdding, addedByUser) {
   const chat = chats.find((c) => c.id === chatId);
-  if (!chat) return {
-    success: false,
-    error: "Chat not found"
-  };
+  if (!chat) {
+    return {
+      success: false,
+      error: "Chat not found",
+    };
+  }
 
   if (!chat.participants.includes(addedByUser.id)) {
     return {
       success: false,
-      error: "Not authorized"
+      error: "Not authorized",
     };
   }
 
   if (chat.participants.includes(userAdding.id)) {
     return {
       success: false,
-      error: "User already in chat"
+      error: "User already in chat",
     };
   }
 
@@ -115,7 +120,7 @@ function addUserToChat(chatId, userAdding, addedByUser) {
   return {
     success: true,
     chat,
-    userId: userAdding.id
+    user: userAdding,
   };
 }
 
@@ -125,11 +130,11 @@ function removeUserFromChat(chatId, userToRemove, removedByUser) {
   if (!chat) return false;
 
   if (userId === removedByUser.id) {
-    if (chat.admin.id === userId) {
+    if (chat.admin.id === removedByUser.id) {
       return false;
     }
   } else {
-    if (chat.admin.id !== userId) {
+    if (chat.admin.id !== removedByUser.id) {
       return false;
     }
   }
@@ -144,9 +149,9 @@ function removeUserFromChat(chatId, userToRemove, removedByUser) {
       chats.splice(chatIndex, 1);
     }
 
-    const message = userToRemove.id == removedByUser.id ?
-      `User ${userToRemove.username} left the chat` :
-      `User ${userToRemove.username} has been removed by ${removedByUser.username} from chat`;
+    const message = userToRemove.id == removedByUser.id
+      ? `User ${userToRemove.username} left the chat`
+      : `User ${userToRemove.username} has been removed by ${removedByUser.username} from chat`;
     addServerMessage(chatId, message);
     needsSaving = true;
 
@@ -201,7 +206,7 @@ function addServerMessage(chatId, message) {
   chatConnections.forEach((socketId) => {
     io.to(socketId).emit("message_received", {
       chatId,
-      message: newMessage
+      message: newMessage,
     });
   });
 
@@ -231,7 +236,7 @@ function addMessage(chatId, message, senderId) {
   chatConnections.forEach((socketId) => {
     io.to(socketId).emit("message_received", {
       chatId,
-      message: newMessage
+      message: newMessage,
     });
   });
   io.sockets.sockets.forEach((s) => {
@@ -261,6 +266,7 @@ function registerUser(username, password) {
     id: generateUserId(),
     username,
     password: hashPassword(password),
+    creationTime: Date.now(),
   };
   users.push(newUser);
   needsSaving = true;
@@ -308,15 +314,13 @@ function deleteUser(userId) {
           const removed = removeUserFromChat(chat.id, user, user);
           if (removed) {
             if (chat) {
-              chat.participants.forEach((userId) => {
                 io.sockets.sockets.forEach((s) => {
-                  if (s.user && s.user.id === userId) {
-                    const userChats = getUserChats(userId);
+                  if (s.user && chat.participants.includes(s.user.id)) {
+                    const userChats = getUserChats(s.user.id);
                     s.emit("chats_list", userChats);
                   }
                 });
-              });
-            }
+                          }
           }
         }
       },
@@ -333,7 +337,7 @@ io.on("connection", (socket) => {
   socket.on("register", (data) => {
     const {
       username,
-      password
+      password,
     } = data;
     const newUser = registerUser(username, password);
     if (newUser) {
@@ -350,7 +354,7 @@ io.on("connection", (socket) => {
   socket.on("login", (data) => {
     const {
       username,
-      password
+      password,
     } = data;
     const user = authenticateUser(username, password);
     if (user) {
@@ -367,7 +371,7 @@ io.on("connection", (socket) => {
   socket.on("create_chat", (data) => {
     if (!socket.user) return;
     const {
-      name
+      name,
     } = data;
     const newChat = createChat(
       name.slice(0, 30),
@@ -395,7 +399,7 @@ io.on("connection", (socket) => {
   socket.on("join_chat", (data) => {
     if (!socket.user) return;
     const {
-      chatId
+      chatId,
     } = data;
 
     const prevConnection = activeConnections.get(socket.id);
@@ -406,14 +410,14 @@ io.on("connection", (socket) => {
     socket.join(chatId);
     activeConnections.set(socket.id, {
       userId: socket.user.id,
-      chatId
+      chatId,
     });
 
     const messages = getChatMessages(chatId, socket.user.id);
     if (messages) {
       socket.emit("chat_messages", {
         chatId,
-        messages
+        messages,
       });
     }
   });
@@ -421,7 +425,7 @@ io.on("connection", (socket) => {
   socket.on("send_message", (data) => {
     if (!socket.user) return;
     const {
-      message
+      message,
     } = data;
 
     const connection = activeConnections.get(socket.id);
@@ -434,7 +438,7 @@ io.on("connection", (socket) => {
     if (!socket.user) return;
     const {
       chatId,
-      username
+      username,
     } = data;
     const userAdding = users.find((u) => u.username === username);
     if (!userAdding) {
@@ -447,7 +451,7 @@ io.on("connection", (socket) => {
       socket.emit("user_added", {
         chatId,
         chat,
-        userId: result.userId
+        user: result.user,
       });
       io.sockets.sockets.forEach((s) => {
         if (s.user && chat.participants.includes(s.user.id)) {
@@ -457,14 +461,14 @@ io.on("connection", (socket) => {
       });
     } else {
       socket.emit("add_user_failed", {
-        error: result.error
+        error: result.error,
       });
     }
   });
   socket.on("edit_chat_name", (data) => {
     const {
       newName,
-      chatId
+      chatId,
     } = data;
     const chat = chats.find((c) => c.id === chatId);
     if (chat && newName) {
@@ -493,7 +497,7 @@ io.on("connection", (socket) => {
   socket.on("delete_chat", (data) => {
     if (!socket.user) return;
     const {
-      chatId
+      chatId,
     } = data;
 
     const chat = chats.find((c) => c.id === chatId);
@@ -509,17 +513,15 @@ io.on("connection", (socket) => {
         );
       })
     ) {
-      participants.forEach((userId) => {
         io.sockets.sockets.forEach((s) => {
-          if (s.user && s.user.id === userId) {
-            const userChats = getUserChats(userId);
+          if (s.user && chat.participants.includes(s.user.id)) {
+            const userChats = getUserChats(s.user.id);
             s.emit("chats_list", userChats);
           }
         });
-      });
-
+      
       socket.emit("chat_deleted", {
-        chatId
+        chatId,
       });
     } else {
       socket.emit("delete_chat_failed");
@@ -528,14 +530,14 @@ io.on("connection", (socket) => {
   socket.on("leave_chat", (data) => {
     if (!socket.user) return;
     const {
-      chatId
+      chatId,
     } = data;
     const chat = chats.find((c) => c.id === chatId);
     if (!chat) return;
     const participants = chat.participants;
     if (removeUserFromChat(chatId, socket.user, socket.user)) {
       socket.emit("left_chat", {
-        chatId
+        chatId,
       });
 
       const refreshedChats = getUserChats(socket.user.id);
@@ -563,28 +565,35 @@ io.on("connection", (socket) => {
   socket.on("remove_user_from_chat", (data) => {
     const {
       chatId,
-      username
+      userIdToRemove,
     } = data;
-    const userToRemove = users.find((u) => u.username === username);
+    const chat = chats.find((c) => c.id === chatId);
+    const participants = chat?.participants;
+    const userToRemove = users.find((u) => u.id === userIdToRemove);
     if (!userToRemove) {
-      return socket.emit("remove_user_failed", {
-        error: "User not found"
-      });
+      return socket.emit("remove_user_failed", { user: userToRemove, chatId });
     }
 
     const removed = removeUserFromChat(chatId, userToRemove, socket.user);
     if (removed) {
-      const chat = chats.find((c) => c.id === chatId);
-      if (chat) {
-        chat.participants.forEach((userId) => {
+
+      if (chat && participants) {
           io.sockets.sockets.forEach((s) => {
-            if (s.user && s.user.id === userId) {
-              const userChats = getUserChats(userId);
+            if (s.user && participants.includes(s.user.id)) {
+              const userChats = getUserChats(s.user.id);
               s.emit("chats_list", userChats);
             }
+            if(s?.user?.id === userIdToRemove){
+              const userChats = getUserChats(s.user.id);
+              s.emit("chats_list", userChats);
+              s.emit("removed_from_chat", {chatId})
+            }
           });
-        });
+        
+        socket.emit("user_removed", { user: userToRemove, chatId });
       }
+    } else {
+      socket.emit("remove_user_failed", { user: userToRemove, chatId });
     }
   });
 
@@ -614,11 +623,11 @@ function main() {
     if (needsSaving) {
       needsSaving = false;
       fetch(process.env["GASURL"], {
-          method: "POST",
-          body: JSON.stringify({
-            url: process.env["SERVICEURL"] + "/" + randomCharacters,
-          }),
-        })
+        method: "POST",
+        body: JSON.stringify({
+          url: process.env["SERVICEURL"] + "/" + randomCharacters,
+        }),
+      })
         .then((r) => r.json())
         .then((j) => {
           if (!j.success) {

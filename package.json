@@ -1,13 +1,13 @@
 {
-  "name": "msg",
-  "version": "1.0.0",
+  "name": "chatapp",
+  "version": "0.7.2",
   "description": "",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "skiibiidee",
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.4.5",

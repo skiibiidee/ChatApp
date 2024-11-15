@@ -316,7 +316,7 @@
     const socket = io();
     const rootUrl = "";
 
-    const version = "v0.7.1";
+    const version = "v0.7.2";
     let currentUser = null;
     let currentChat = null;
     let userChats = [];
@@ -348,9 +348,16 @@
     }
     socket.on("version", async (v) => {
       if (v !== version) {
-        const confirmed = await createConfirmModal(`Client out of date. Server running ${v} while client on ${version}. Download new version?`)
-        if (confirmed) {
-          window.open(`${rootUrl}/download`, target = "_blank")
+        if (rootUrl !== "") {
+          const confirmed = await createConfirmModal(`Client out of date. Server running ${v} while client on ${version}. Download new version from "${rootUrl}"?`)
+          if (confirmed) {
+            window.open(`${rootUrl}/download`, target = "_blank")
+          }
+        } else {
+          const confirmed = await createConfirmModal(`Client out of date. Server running ${v} while client on ${version}. Reload?`)
+          if (confirmed) {
+            window.location.reload();
+          }
         }
       }
     })

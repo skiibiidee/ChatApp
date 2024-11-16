@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.7.3";
+const version = "v0.8.0";
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -369,7 +369,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("create_chat", (data) => {
-    if (!socket.user) return;
+    if (!socket.user) return socket.emit("chat_failed_to_create");
     const {
       name,
     } = data;
@@ -383,7 +383,6 @@ io.on("connection", (socket) => {
       `Chat ${name} created by ${socket.user.username}`,
     );
     socket.emit("chat_created", newChat);
-
     const userChats = getUserChats(socket.user.id);
     socket.emit("chats_list", userChats);
   });

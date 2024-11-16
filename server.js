@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.7.2";
+const version = "v0.7.3";
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -149,9 +149,9 @@ function removeUserFromChat(chatId, userToRemove, removedByUser) {
       chats.splice(chatIndex, 1);
     }
 
-    const message = userToRemove.id == removedByUser.id ?
-      `User ${userToRemove.username} left the chat` :
-      `User ${userToRemove.username} has been removed by ${removedByUser.username} from chat`;
+    const message = userToRemove.id == removedByUser.id
+      ? `User ${userToRemove.username} left the chat`
+      : `User ${userToRemove.username} has been removed by ${removedByUser.username} from chat`;
     addServerMessage(chatId, message);
     needsSaving = true;
 
@@ -573,13 +573,12 @@ io.on("connection", (socket) => {
     if (!userToRemove) {
       return socket.emit("remove_user_failed", {
         user: userToRemove,
-        chatId
+        chatId,
       });
     }
 
     const removed = removeUserFromChat(chatId, userToRemove, socket.user);
     if (removed) {
-
       if (chat && participants) {
         io.sockets.sockets.forEach((s) => {
           if (s.user && participants.includes(s.user.id)) {
@@ -590,20 +589,20 @@ io.on("connection", (socket) => {
             const userChats = getUserChats(s.user.id);
             s.emit("chats_list", userChats);
             s.emit("removed_from_chat", {
-              chatId
-            })
+              chatId,
+            });
           }
         });
 
         socket.emit("user_removed", {
           user: userToRemove,
-          chatId
+          chatId,
         });
       }
     } else {
       socket.emit("remove_user_failed", {
         user: userToRemove,
-        chatId
+        chatId,
       });
     }
   });
@@ -634,11 +633,11 @@ function main() {
     if (needsSaving) {
       needsSaving = false;
       fetch(process.env["GASURL"], {
-          method: "POST",
-          body: JSON.stringify({
-            url: process.env["SERVICEURL"] + "/" + randomCharacters,
-          }),
-        })
+        method: "POST",
+        body: JSON.stringify({
+          url: process.env["SERVICEURL"] + "/" + randomCharacters,
+        }),
+      })
         .then((r) => r.json())
         .then((j) => {
           if (!j.success) {

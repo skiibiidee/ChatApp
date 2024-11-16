@@ -186,9 +186,9 @@
     <!-- Main Chat Area -->
     <div class="w-2/3 flex flex-col">
       <!-- Chat Header -->
-      <div class="chat-header bg-gray-800 shadow-sm p-4 flex items-center justify-between">
+      <button id="chat-header" class="chat-header bg-gray-800 shadow-sm p-4 flex items-center justify-between">
         <div class="flex items-center gap-4 overflow-hidden">
-          <button id="chat-title" class="text-xl font-semibold truncate">Chat Name</button>
+          <h1 id="chat-title" class="text-xl font-semibold truncate">Chat Name</h1>
         </div>
         <div class="text-sm text-gray-400 inline-flex items-center">
           <span id="chat-members" class="">
@@ -197,7 +197,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
         </div>
-      </div>
+      </button>
       <!-- Messages Container -->
       <div class="flex-1 bg-gray-900 px-4 py-2 overflow-hidden flex flex-col">
         <div id="message-container" class="flex-1 overflow-y-auto"> </div>
@@ -316,11 +316,15 @@
     const socket = io();
     const rootUrl = "";
 
-    const version = "v0.7.2";
+    const version = "v0.7.3";
     let currentUser = null;
     let currentChat = null;
     let userChats = [];
     let unread = 0;
+
+    let msgsSinceLastShow = 0;
+    let msgLastTimestamp = 0;
+    let lastMessageDay = null;
 
     let userColors = new Map();
 
@@ -346,6 +350,7 @@
       document.getElementById("username").value = savedUsername;
       document.getElementById("password").value = savedPassword;
     }
+
     socket.on("version", async (v) => {
       if (v !== version) {
         if (rootUrl !== "") {
@@ -375,6 +380,11 @@
       currentChat = null;
       userChats = [];
       unread = 0;
+
+      msgsSinceLastShow = 0;
+      msgLastTimestamp = 0;
+      lastMessageDay = null;
+
       document.title = `Chat${unread !== 0 ? ` (${unread})` : ""}`;
       userColors = new Map();
       const savedUsername = localStorage.getItem("username");
@@ -414,9 +424,6 @@
       }
       return userColors.get(username);
     }
-    let msgsSinceLastShow = 0;
-    let msgLastTimestamp = 0;
-    let lastMessageDay = null;
 
     function appendMessage(message, bulk) {
       if (lastMessageDay !== formatDateToYearMonthDay(new Date(message.timestamp))) {
@@ -587,7 +594,6 @@
       }
     }
 
-
     function renderChatList() {
       const chatList = document.querySelector(".chat-list");
       chatList.innerHTML = "";
@@ -683,6 +689,11 @@
     }
 
     function switchToChat(chat) {
+
+      msgsSinceLastShow = 0;
+      msgLastTimestamp = 0;
+      lastMessageDay = null;
+
       unread = 0;
       document.title = "Chat";
       document.getElementById("message-container").innerHTML = "";
@@ -900,6 +911,7 @@
 
       });
     }
+
     socket.on("chats_list", (chats) => {
       if (userChats.length == 0) {
         userChats = chats;
@@ -1134,7 +1146,7 @@
       });
 
     document
-      .getElementById("chat-title")
+      .getElementById("chat-header")
       .addEventListener("click", () => {
         if (!currentChat) return;
         document

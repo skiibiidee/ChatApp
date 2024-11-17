@@ -5,8 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Chat</title>
+  <meta name="description" content="Skibidi Chat - A real-time chat application.">
+  <meta name="keywords" content="Chat, Real-time, WebSocket, Messaging">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.0/purify.min.js"></script>
+
   <style>
     * {
       box-sizing: border-box
@@ -39,6 +43,10 @@
       font-size: 1rem
     }
 
+    .down-arrow-btn:hover {
+      background-color: rgba(0, 0, 0, .7)
+    }
+
     @media (min-width:1200px) {
       html {
         font-size: 20px
@@ -62,26 +70,25 @@
       }
     }
 
-    .down-arrow-btn {
-      position: absolute;
-      right: 20px;
-      width: 50px;
-      height: 50px;
-      background-color: rgba(0, 0, 0, .5);
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      font-size: 24px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, .3);
-      transition: background-color .3s
+    @media only screen and (max-width: 600px) {
+      #right-pane {
+        display: none;
+        width: 100%;
+      }
+
+      #left-pane {
+        width: 100%;
+      }
+
+      .mobile-button {
+        display: flex;
+      }
     }
 
-    .down-arrow-btn:hover {
-      background-color: rgba(0, 0, 0, .7)
+    @media only screen and (min-width: 600px) {
+      .mobile-button {
+        display: none;
+      }
     }
 
     @keyframes fadeIn {
@@ -121,7 +128,7 @@
 <body class="min-h-screen transition-colors duration-300 bg-gray-900 text-white">
   <div id="login-page" class="min-h-screen flex items-center justify-center p-4">
     <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md space-y-6">
-      <h1 class="text-5xl font-bold mb-4">Skibidi Chat<span class="absolute inline-block align-text-top ml-3 px-2 py-1 text-base font-semibold text-white bg-blue-600 rounded-full" id="login-page-version"></span></h1>
+      <h1 class="text-5xl font-bold mb-4 relative">Skibidi Chat<span class=" inline-block align-text-top ml-3 px-2 py-1 text-base font-semibold text-white bg-blue-600 rounded-full" id="login-page-version"></span></h1>
       <p class="text-gray-400">Please enter your details</p>
       <div class="space-y-4">
         <div><label for="username" class="block text-gray-400 font-medium mb-2">Username</label><input type="text" id="username" class="w-full p-3 border border-gray-600 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="Enter your username" maxlength="32"></div>
@@ -131,7 +138,7 @@
     </div>
   </div>
   <div id="chat-page" class="hidden h-screen flex">
-    <div class="w-1/3 bg-gray-800 border-r border-gray-700 flex flex-col">
+    <div class="w-1/3 bg-gray-800 border-r border-gray-700 flex flex-col" id="left-pane">
       <div class="p-4 border-b border-gray-700 flex items-center justify-between"><button class="flex items-center gap-2 text-gray-400 text-sm" id="home-btn"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             <polyline points="9 22 9 12 15 12 15 22" />
@@ -142,16 +149,39 @@
         </svg><span class="whitespace-nowrap overflow-hidden transition-all duration-200 sm:w-auto w-0 text-center">Create New Chat</span></button>
       <div class="chat-list flex-1 overflow-y-auto"></div>
     </div>
-    <div class="w-2/3 flex flex-col"><button id="chat-header" class="chat-header bg-gray-800 shadow-sm p-4 flex items-center justify-between">
-        <div class="flex items-center gap-4 overflow-hidden">
-          <h1 id="chat-title" class="text-xl font-semibold truncate">Chat Name</h1>
+    <div class="w-2/3 flex flex-col" id="right-pane">
+      <div id="chat-header-whole" class="bg-gray-800 shadow-sm p-2 flex items-center justify-between">
+        <button id="mobile-back-btn" class="mobile-button font-semibold p-2">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="35" height="35">
+            <path d="M15.5 18l-6-6 6-6" fill="none" stroke="#888888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </button>
+        <button id="chat-header" class="flex overflow-hidden pr-2">
+
+          <h1 id="chat-title" class="text-xl font-semibold truncate">sadc</h1>
+        </button>
+        <div id="chat-header-members" style="width:25px;height:25px;" class="text-sm text-gray-400 inline-flex items-center m-2">
+          <span id="chat-members">1</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
         </div>
-        <div class="text-sm text-gray-400 inline-flex items-center"><span id="chat-members" class=""></span><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg></div>
-      </button>
+      </div>
       <div class="flex-1 bg-gray-900 px-4 py-2 overflow-hidden flex flex-col">
-        <div id="message-container" class="flex-1 overflow-y-auto"></div><button id="downArrowBtn" class="down-arrow-btn">↓</button>
+        <div id="message-container" class="flex-1 overflow-y-scroll"></div><button id="downArrowBtn" class="down-arrow-btn absolute flex right-5" style="
+          width: 50px;
+          height: 50px;
+          background-color: rgba(0, 0, 0, .5);
+          color: #fff;
+          border: none;
+          border-radius: 50%;
+          font-size: 24px;
+          justify-content: center;
+          align-items: center;
+          cursor: pointer;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, .3);
+          transition: background-color .3s;
+          ">↓</button>
       </div>
       <div id="form-div" class="bg-gray-800 border-t border-gray-700 p-4">
         <form id="message-form" class="flex gap-3" autocomplete="off"><input type="text" id="message-input" class="flex-1 p-3 border border-gray-600 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="Type your message..." maxlength="250"><button type="submit" id="send-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 rounded-lg transition duration-200">Send</button></form>
@@ -200,12 +230,12 @@
       <div class="flex justify-between items-center"><button id="settings-modal-close-btn" class="w-full text-gray-400 hover:text-gray-300 px-4 py-2 rounded border-2 border-gray-400 hover:border-gray-300 text-center">Close</button></div>
     </div>
   </div>
-  <div id="toast-container" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999"></div>
+  <div id="toast-container" style="position:fixed;bottom:5em;left:50%;transform:translateX(-50%);z-index:9999"></div>
   <script>
     // Skibidi Chat Script =>
     const socket = io();
     const rootUrl = "";
-    const version = "v0.8.0";
+    const version = "v0.9.0";
     // Objects
     let currentUser = null;
     let currentChat = null;
@@ -235,6 +265,7 @@
     let lastMessageSender = null;
     // Booleans
     let focused = true;
+    let isMobile = false;
     //----------------------------------------------//
     // Scrolling Functions
     function triggerScroll() {
@@ -514,17 +545,24 @@
     }
 
     function switchToChat(chat) {
-
+      if (isMobile) {
+        mobileSwitchToPane(2)
+      }
       msgsSinceLastShow = 0;
       msgLastTimestamp = 0;
       lastMessageDay = null;
-      unread = 0;
+      unread = 0
       document.title = "Chat";
       document.getElementById("message-container").innerHTML = "";
       document
-        .querySelector(".chat-header")
+        .getElementById("chat-header-whole")
         .classList.remove("hidden");
       document.getElementById("form-div").classList.remove("hidden");
+
+      document.getElementById("chat-header").classList.remove("hidden")
+      document.getElementById("chat-header-members").classList.remove("hidden")
+      document.getElementById("message-container").classList.add("overflow-y-scroll")
+      document.getElementById("message-container").classList.remove("overflow-y-hidden")
       currentChat = chat;
       socket.emit("join_chat", {
         chatId: chat.id
@@ -557,22 +595,38 @@
       document.getElementById("message-container").innerHTML =
         userChats.length == 0 ?
         `<div class="flex flex-col items-center justify-center h-screen bg-gray-900 text-white">
-                                       <h1 class="text-5xl font-bold mb-4">Skibidi Chat<span class="absolute inline-block align-text-top ml-3 px-2 py-1 text-base font-semibold text-white bg-blue-600 rounded-full">${`${version}`}
+                                       <h1 class="text-3xl font-bold mb-4 relative">Skibidi Chat<span class="absolute inline-block align-text-top ml-3 px-2 py-1 text-base font-semibold text-white bg-blue-600 rounded-full">${`${version}`}
 </span></h1>
                                        <p class="text-xl mb-2">To start, create a new chat or ask other users to add you to a existing chat.</p>
                                        <p class="text-sm">Made by <a href="https://github.com/skiibiidee/">@skiibiidee</a></p>
                                    </div>` :
         `<div class="flex flex-col items-center justify-center h-screen bg-gray-900 text-white">
-                                       <p class="text-5xl font-bold mb-4">Skibidi Chat<span class="absolute inline-block align-text-top ml-3 px-2 py-1 text-base font-semibold text-white bg-blue-600 rounded-full">${`${version}`}
+                                       <p class="text-3xl font-bold mb-4 relative">Skibidi Chat<span class="absolute inline-block align-text-top ml-3 px-2 py-1 text-base font-semibold text-white bg-blue-600 rounded-full">${`${version}`}
 </span></p>
                                        <h1 class="text-4xl font-semi-bold mb-4">Welcome Back</h1>
                           <a class="px-4 py-2 bg-purple-700 rounded-5 rounded mb-3 mt-2" style="text-decoration:none;" href="${rootUrl}/download" target="_blank">Download html file</a>
                                        <p class="text-sm">Made by <a href="https://github.com/skiibiidee/">@skiibiidee</a></p>
                                    </div>`;
-      document.querySelector(".chat-header").classList.add("hidden");
       document.getElementById("form-div").classList.add("hidden");
       document.getElementById("settings-modal").classList.add("hidden")
       document.getElementById("user-settings-modal").classList.add("hidden")
+      document.getElementById("chat-header").classList.add("hidden")
+      document.getElementById("chat-header-members").classList.add("hidden")
+      document.getElementById("message-container").classList.remove("overflow-y-scroll")
+
+      if (!isMobile) {
+        document
+          .getElementById("chat-header-whole")
+          .classList.add("hidden");
+      } else {
+        document
+          .getElementById("chat-header-whole")
+          .classList.remove("hidden");
+
+      }
+
+      document.getElementById("message-container").classList.add("overflow-y-hidden")
+
       document.getElementById("chat-title").textContent =
         "Chat Name";
       document.getElementById(
@@ -738,8 +792,8 @@
       document
         .getElementById("login-btn")
         .addEventListener("click", () => {
-          const username = document.getElementById("username").value;
-          const password = document.getElementById("password").value;
+          const username = DOMPurify.sanitize(document.getElementById("username").value);
+          const password = DOMPurify.sanitize(document.getElementById("password").value);
           socket.emit("login", {
             username,
             password,
@@ -773,6 +827,11 @@
       document
         .getElementById("home-btn")
         .addEventListener("click", () => {
+          if (isMobile) {
+            toHome()
+            mobileSwitchToPane(2)
+            return
+          }
           toHome()
         })
       document
@@ -855,11 +914,11 @@
       document
         .getElementById("add-user-btn")
         .addEventListener("click", async () => {
-          const username = await createPromptModal("Enter username to add:", "", 32);
-          if (username && currentChat) {
+          const userId = await createPromptModal("Enter userid to add:", "", 32);
+          if (userId && currentChat) {
             socket.emit("add_user_to_chat", {
               chatId: currentChat.id,
-              username: username.slice(0, 32),
+              userId: userId.trim().slice(0, 11),
             });
           }
         });
@@ -918,7 +977,7 @@
       socket.on("version", async (v) => {
         if (v !== version) {
           if (rootUrl !== "") {
-            const confirmed = await createConfirmModal(`Client out of date. Server running ${v} while client on ${version}. Download new version from "${rootUrl}"?`)
+            const confirmed = await createConfirmModal(`Client and Server version mismatch. Server running ${v} while client on ${version}. Download new version from "${rootUrl}"?`)
             if (confirmed) {
               window.open(`${rootUrl}/download`, target = "_blank")
             }
@@ -930,6 +989,10 @@
           }
         }
       })
+      socket.on("connect_error", () => {
+        showToast("Failed to connect. Retrying...");
+        setTimeout(() => socket.connect(), 3000);
+      });
       socket.on("connect", () => {
         console.log("Connected to the server.");
         showToast("Connected", 5000)
@@ -958,7 +1021,12 @@
       socket.on("chats_list", (chats) => {
         if (userChats.length == 0) {
           userChats = chats;
-          toHome();
+          if (!isMobile) {
+            toHome();
+          } else {
+            toHome();
+            mobileSwitchToPane(1)
+          }
         } else {
           userChats = chats;
         }
@@ -1015,7 +1083,12 @@
         document.getElementById("settings-username-display").textContent = user.username;
         document.getElementById("settings-user-id").textContent = user.id;
         document.getElementById("settings-user-creation").textContent = new Date(user.creationTime).toString();
-        toHome();
+        if (!isMobile) {
+          toHome();
+        } else {
+          toHome();
+          mobileSwitchToPane(1)
+        }
         showToast("Logged in successfully.", 5000)
       });
       socket.on("registered", (user) => {
@@ -1028,7 +1101,12 @@
         document.getElementById("settings-username-display").textContent = user.username;
         document.getElementById("settings-user-id").textContent = user.id;
         document.getElementById("settings-user-creation").textContent = new Date(user.creationTime).toString();
-        toHome();
+        if (!isMobile) {
+          toHome();
+        } else {
+          toHome();
+          mobileSwitchToPane(1)
+        }
         showToast("Registered and logged in successfully.", 5000)
       });
       socket.on("registration_failed", () => {
@@ -1083,7 +1161,12 @@
         } = data;
         showToast(`You have been removed from ${chatId} by the Admin.`, 5000)
         if (chatId === currentChat?.id) {
-          toHome()
+          if (!isMobile) {
+            toHome();
+          } else {
+            toHome();
+            mobileSwitchToPane(1)
+          }
         }
       })
       socket.on("chat_deleted", ({
@@ -1093,7 +1176,11 @@
         document
           .getElementById("settings-modal")
           .classList.add("hidden");
-        toHome();
+        if (!isMobile) {
+          toHome();
+        } else {
+          mobileSwitchToPane(1)
+        }
       });
       socket.on("delete_chat_failed", () => {
         showToast(`Chat of id: ${chatId} failed to delete.`);
@@ -1114,7 +1201,12 @@
         document
           .getElementById("settings-modal")
           .classList.add("hidden");
-        toHome();
+        if (!isMobile) {
+          toHome();
+        } else {
+          toHome();
+          mobileSwitchToPane(1)
+        }
       });
       socket.on("leave_chat_failed", () => {
         showToast(`Failed to leave chat.`);
@@ -1132,6 +1224,44 @@
       socket.on("chat_name_editing_failed", () => {
         showToast("Chat name failed to edit.")
       })
+    }
+    
+    function mobileSwitchToPane(pane) {
+      const left_pane = document.getElementById("left-pane")
+      const right_pane = document.getElementById("right-pane")
+      if (pane === 2) {
+        left_pane.style.display = "none"
+        right_pane.style.display = "flex"
+
+      } else {
+        if (currentChat) {
+          toHome();
+        }
+        left_pane.style.display = "flex"
+        right_pane.style.display = "none"
+      }
+    }
+
+    function prepareMobileCode() {
+      const mobile_back_btn = document.getElementById("mobile-back-btn");
+      mobile_back_btn.addEventListener("click", () => {
+        toHome()
+        mobileSwitchToPane(1)
+      })
+
+      function changeMobileState() {
+        const x = window.matchMedia("(max-width: 600px)")
+
+        if (x.matches) {
+          isMobile = true;
+        } else {
+          isMobile = false;
+        }
+      }
+
+      changeMobileState();
+
+      window.addEventListener("resize", changeMobileState);
     }
 
     function setSocketEvents() {
@@ -1154,6 +1284,7 @@
     function setHtmlContent() {
       document.getElementById("login-page-version").textContent = version
     }
+
     //----------------------------------------------//
     // Main
     function main() {
@@ -1162,6 +1293,7 @@
       setSocketEvents()
       prepareUserLogin()
       startFocusPolling()
+      prepareMobileCode()
     }
     window.onload = main;
   </script>

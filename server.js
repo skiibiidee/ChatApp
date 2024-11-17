@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.8.0";
+const version = "v0.9.0";
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -437,9 +437,9 @@ io.on("connection", (socket) => {
     if (!socket.user) return;
     const {
       chatId,
-      username,
+      userId,
     } = data;
-    const userAdding = users.find((u) => u.username === username);
+    const userAdding = users.find((u) => u.id === userId);
     if (!userAdding) {
       return socket.emit("add_user_failed");
     }
@@ -459,9 +459,7 @@ io.on("connection", (socket) => {
         }
       });
     } else {
-      socket.emit("add_user_failed", {
-        error: result.error,
-      });
+      socket.emit("add_user_failed");
     }
   });
   socket.on("edit_chat_name", (data) => {

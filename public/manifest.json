@@ -1,0 +1,17 @@
+{
+  "short_name": "Chat App",
+  "name": "Skibidi Chat App",
+  "description": "Skibidi Chat - A real-time chat application.",
+  "keywords": "Chat, Real-time, WebSocket, Messaging",
+  "icons": [
+    {
+      "src": "/favicon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "rgb(17 24 39)",
+  "background_color": "rgb(17 24 39)"
+}

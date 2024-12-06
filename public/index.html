@@ -1,0 +1,3303 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8">
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,interactive-widget=resizes-content"
+    >
+    <title>Chat</title>
+    <meta
+      name="description"
+      content="Skibidi Chat - A real-time chat application."
+    >
+    <meta name="keywords" content="Chat, Real-time, WebSocket, Messaging">
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/x-icon" href="/favicon-512x512.png">
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"
+    ></script>
+    <link href="/dist/styles.css" rel="stylesheet">
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.0/purify.min.js"
+    ></script>
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        font-size: 16px;
+      }
+
+      body {
+        font-size: 1rem;
+        overflow: hidden;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+
+      p {
+        font-size: 1rem;
+      }
+
+      button,
+      input,
+      select {
+        font-size: 1rem;
+      }
+
+      .down-arrow-btn:hover {
+        background-color: rgba(0, 0, 0, 0.7);
+      }
+
+      @media (min-width: 1200px) {
+        html {
+          font-size: 20px;
+        }
+
+        .container {
+          max-width: 1140px;
+          padding: 0 2rem;
+        }
+
+        h1 {
+          font-size: 3rem;
+        }
+
+        h2 {
+          font-size: 2rem;
+        }
+
+        p {
+          font-size: 1.25rem;
+        }
+      }
+
+      @media only screen and (max-width: 600px) {
+        #right-pane {
+          display: none;
+          width: 100%;
+        }
+
+        #left-pane {
+          width: 100%;
+        }
+
+        .mobile-button {
+          display: flex;
+        }
+
+        .chat-item-border {
+          border-radius: 0%;
+          border-bottom-color: inherit;
+        }
+      }
+
+      @media only screen and (min-width: 600px) {
+        .mobile-button {
+          display: none;
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeOut {
+        from {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        to {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+      }
+
+      .animate-fade-in {
+        animation: fadeIn 0.3s ease-in-out;
+      }
+
+      .animate-fade-out {
+        animation: fadeOut 0.3s ease-in-out;
+      }
+
+      @keyframes progress {
+        0% {
+          width: 0;
+        }
+
+        100% {
+          width: 100%;
+        }
+      }
+
+      .animate-progress {
+        animation: progress var(--loading-time, 3s) ease-in-out;
+      }
+    </style>
+  </head>
+
+  <body
+    class="min-h-screen transition-colors duration-300 bg-color-900 text-white"
+  >
+    <div
+      id="loading-page"
+      class="flex items-center justify-center min-h-screen bg-black-900 text-white fixed inset-0 transition-opacity duration-500"
+      style="z-index: 9999"
+    >
+      <div class="text-center space-y-8">
+        <h1 class="text-5xl font-bold">Skibidi Chat App</h1>
+        <h4 class="text-2xl" id="loading-page-desc"></h4>
+        <div class="w-72 mx-auto h-2 rounded-full overflow-hidden">
+          <div id="load-progress" class="h-full bg-white rounded-full"></div>
+        </div>
+      </div>
+    </div>
+    <div
+      id="login-page"
+      class="min-h-screen flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-color-800 p-8 rounded-xl shadow-2xl w-full max-w-md"
+        style="max-height: 90vh; overflow-y: auto"
+      >
+        <h1 class="text-5xl font-bold mb-2 relative">
+          Skibidi Chat<span
+            class="inline-block align-text-top m-3 px-2 py-1 text-base font-semibold text-white bg-secondarycolor-600 rounded-full"
+            id="login-page-version"
+          ></span>
+        </h1>
+        <p class="text-gray-400 mb-6">Please enter your details</p>
+        <div class="space-y-4">
+          <div>
+            <label for="username" class="block text-gray-400 font-medium mb-2"
+            >Username</label><input
+              type="text"
+              id="username"
+              class="w-full p-3 border border-color-600 bg-color-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-secondarycolor-500 transition duration-200"
+              placeholder="Enter your username"
+              maxlength="32"
+              minlength="4"
+              autocomplete="off"
+            >
+          </div>
+          <div>
+            <label for="password" class="block text-gray-400 font-medium mb-2"
+            >Password</label><input
+              type="password"
+              id="password"
+              class="w-full p-3 border border-color-600 bg-color-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-secondarycolor-500 transition duration-200"
+              placeholder="Enter your password"
+              maxlength="32"
+              minlength="4"
+              autocomplete="off"
+            >
+          </div>
+          <div class="flex gap-4">
+            <button
+              id="login-btn"
+              class="flex-1 bg-secondarycolor-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+              disabled
+            >
+              Login
+            </button>
+            <button
+              id="register-btn"
+              class="flex-1 bg-color-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+              disabled
+            >
+              Register
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="chat-page" class="hidden h-screen flex">
+      <div
+        class="w-1/3 bg-color-800 border-r border-color-700 flex flex-col"
+        id="left-pane"
+      >
+        <div
+          class="p-4 border-b border-color-700 flex items-center justify-between"
+        >
+          <button
+            class="inline-flex items-center gap-2 text-gray-400 text-sm"
+            id="home-btn"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              fill="none"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          </button>
+          <button id="open-settings-menu-btn" class="p-2 text-gray-200 bg-color-700 text-white rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 54 54" stroke="currentColor" class="text-gray-400 h-5 w-5" stroke-width="2">
+              <g>
+                <path d="M51.22,21h-5.052c-0.812,0-1.481-0.447-1.792-1.197s-0.153-1.54,0.42-2.114l3.572-3.571 c0.525-0.525,0.814-1.224,0.814-1.966c0-0.743-0.289-1.441-0.814-1.967l-4.553-4.553c-1.05-1.05-2.881-1.052-3.933,0l-3.571,3.571 c-0.574,0.573-1.366,0.733-2.114,0.421C33.447,9.313,33,8.644,33,7.832V2.78C33,1.247,31.753,0,30.22,0H23.78 C22.247,0,21,1.247,21,2.78v5.052c0,0.812-0.447,1.481-1.197,1.792c-0.748,0.313-1.54,0.152-2.114-0.421l-3.571-3.571 c-1.052-1.052-2.883-1.05-3.933,0l-4.553,4.553c-0.525,0.525-0.814,1.224-0.814,1.967c0,0.742,0.289,1.44,0.814,1.966l3.572,3.571 c0.573,0.574,0.73,1.364,0.42,2.114S8.644,21,7.832,21H2.78C1.247,21,0,22.247,0,23.78v6.439C0,31.753,1.247,33,2.78,33h5.052 c0.812,0,1.481,0.447,1.792,1.197s0.153,1.54-0.42,2.114l-3.572,3.571c-0.525,0.525-0.814,1.224-0.814,1.966 c0,0.743,0.289,1.441,0.814,1.967l4.553,4.553c1.051,1.051,2.881,1.053,3.933,0l3.571-3.572c0.574-0.573,1.363-0.731,2.114-0.42 c0.75,0.311,1.197,0.98,1.197,1.792v5.052c0,1.533,1.247,2.78,2.78,2.78h6.439c1.533,0,2.78-1.247,2.78-2.78v-5.052 c0-0.812,0.447-1.481,1.197-1.792c0.751-0.312,1.54-0.153,2.114,0.42l3.571,3.572c1.052,1.052,2.883,1.05,3.933,0l4.553-4.553 c0.525-0.525,0.814-1.224,0.814-1.967c0-0.742-0.289-1.44-0.814-1.966l-3.572-3.571c-0.573-0.574-0.73-1.364-0.42-2.114 S45.356,33,46.168,33h5.052c1.533,0,2.78-1.247,2.78-2.78V23.78C54,22.247,52.753,21,51.22,21z M52,30.22 C52,30.65,51.65,31,51.22,31h-5.052c-1.624,0-3.019,0.932-3.64,2.432c-0.622,1.5-0.295,3.146,0.854,4.294l3.572,3.571 c0.305,0.305,0.305,0.8,0,1.104l-4.553,4.553c-0.304,0.304-0.799,0.306-1.104,0l-3.571-3.572c-1.149-1.149-2.794-1.474-4.294-0.854 c-1.5,0.621-2.432,2.016-2.432,3.64v5.052C31,51.65,30.65,52,30.22,52H23.78C23.35,52,23,51.65,23,51.22v-5.052 c0-1.624-0.932-3.019-2.432-3.64c-0.503-0.209-1.021-0.311-1.533-0.311c-1.014,0-1.997,0.4-2.761,1.164l-3.571,3.572 c-0.306,0.306-0.801,0.304-1.104,0l-4.553-4.553c-0.305-0.305-0.305-0.8,0-1.104l3.572-3.571c1.148-1.148,1.476-2.794,0.854-4.294 C10.851,31.932,9.456,31,7.832,31H2.78C2.35,31,2,30.65,2,30.22V23.78C2,23.35,2.35,23,2.78,23h5.052 c1.624,0,3.019-0.932,3.64-2.432c0.622-1.5,0.295-3.146-0.854-4.294l-3.572-3.571c-0.305-0.305-0.305-0.8,0-1.104l4.553-4.553 c0.304-0.305,0.799-0.305,1.104,0l3.571,3.571c1.147,1.147,2.792,1.476,4.294,0.854C22.068,10.851,23,9.456,23,7.832V2.78 C23,2.35,23.35,2,23.78,2h6.439C30.65,2,31,2.35,31,2.78v5.052c0,1.624,0.932,3.019,2.432,3.64 c1.502,0.622,3.146,0.294,4.294-0.854l3.571-3.571c0.306-0.305,0.801-0.305,1.104,0l4.553,4.553c0.305,0.305,0.305,0.8,0,1.104 l-3.572,3.571c-1.148,1.148-1.476,2.794-0.854,4.294c0.621,1.5,2.016,2.432,3.64,2.432h5.052C51.65,23,52,23.35,52,23.78V30.22z"></path>
+                <path d="M27,18c-4.963,0-9,4.037-9,9s4.037,9,9,9s9-4.037,9-9S31.963,18,27,18z M27,34c-3.859,0-7-3.141-7-7s3.141-7,7-7 s7,3.141,7,7S30.859,34,27,34z"></path>
+              </g>
+            </svg>
+          </button>
+        </div>
+        <div
+          class="p-4 border-b border-color-700 flex flex-col gap-2"
+          id="chat-list-search-container"
+        >
+          <input
+            type="text"
+            id="chats-search-bar"
+            placeholder="Search chats..."
+            class="border w-full p-2 rounded-lg text-white border-color-500 focus:outline-none bg-transparent"
+          >
+        </div>
+        <div class="relative h-full max-h-screen overflow-auto">
+          <button
+            id="create-chat-btn"
+            class="absolute flex bottom-5 right-5 mx-4 mt-4 bg-secondarycolor-600 text-white font-semibold p-3 rounded-full transition duration-200 items-center justify-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 4v16m8-8H4"
+              >
+              </path>
+            </svg>
+          </button>
+          <div
+            class="chat-list p-4 h-full flex-1 overflow-y-auto border-color-600"
+          >
+          </div>
+        </div>
+      </div>
+      <div class="w-2/3 flex flex-col" id="right-pane">
+        <div
+          id="chat-header-whole"
+          class="border-b border-color-700 bg-color-800 shadow-sm p-4 flex items-center justify-between"
+        >
+          <button id="mobile-back-btn" class="mobile-button font-semibold p-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="35"
+              height="35"
+            >
+              <path
+                d="M15.5 18l-6-6 6-6"
+                fill="none"
+                stroke="#888888"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+              </path>
+            </svg>
+          </button>
+          <button id="chat-header" class="flex overflow-hidden pr-2">
+            <h1 id="chat-title" class="text-xl font-semibold truncate">
+              Chat Title
+            </h1>
+          </button>
+          <div
+            id="chat-header-members"
+            style="width: 25px; height: 25px"
+            class="text-sm text-gray-400 inline-flex items-center m-2"
+          >
+            <span id="chat-members">1</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              >
+              </path>
+            </svg>
+          </div>
+        </div>
+        <div class="flex-1 bg-color-900 px-4 overflow-auto flex flex-col">
+          <div id="home-container" class="hidden">
+            <div
+              class="flex flex-col items-center justify-center h-screen text-white"
+            >
+              <p class="text-3xl font-bold mb-4 relative">
+                Skibidi Chat<span
+                  id="home-version-display"
+                  class="absolute inline-block align-text-top ml-3 px-2 py-1 text-base font-semibold text-white bg-secondarycolor-600 rounded-full"
+                >
+                </span>
+              </p>
+              <h1 class="text-4xl font-semibold mb-4">Welcome Back</h1>
+              <a
+                class="px-4 py-2 bg-secondarycolor-700 rounded-5 rounded-lg mb-3 mt-2"
+                style="text-decoration: none"
+                id="download-link"
+                target="_blank"
+              >Download html file</a>
+              <p class="text-sm">
+                Made by <a href="https://github.com/skiibiidee/">@skiibiidee</a>
+              </p>
+            </div>
+          </div>
+          <div id="message-container" class="flex-1 overflow-y-auto py-5"></div>
+          <button
+            id="down-arrow-btn"
+            class="down-arrow-btn absolute flex mt-5 right-5"
+            style="width: 50px; height: 50px; background-color: rgba(0, 0, 0, 0.5); color: #fff; border: none; border-radius: 50%; font-size: 24px; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); transition: background-color 0.3s"
+          >
+            ↓
+          </button>
+        </div>
+        <div id="form-div" class="bg-color-800 border-t border-color-700 p-2">
+          <div
+            id="filename-display"
+            class="flex items-center justify-between hidden mb-2 px-3 pb-2 border-b border-color-700"
+          >
+            <h1
+              id="filename-display-name"
+              class="text-white text-lg font-semibold"
+            >
+            </h1>
+            <button
+              id="reset-file-btn"
+              class="text-gray-400 hover:text-red-500 transition"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                class="w-5 h-5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+          <input type="file" id="file-chooser" class="hidden" />
+
+          <form
+            id="message-form"
+            class="flex items-center gap-3"
+            autocomplete="off"
+          >
+            <button
+              type="button"
+              id="add-attachment-btn"
+              class="text-gray-400 hover:text-gray-600 transition"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="w-8 h-8"
+              >
+                <path
+                  d="M16 7v8a4 4 0 0 1-8 0V7a4 4 0 0 1 8 0v7a2 2 0 1 1-4 0V8"
+                >
+                </path>
+              </svg>
+            </button>
+            <input
+              type="text"
+              id="message-input"
+              class="flex-1 p-3 focus:outline-none border border-color-600 bg-color-700 text-white rounded-lg"
+              placeholder="Type your message..."
+              autocomplete="off"
+              maxlength="250"
+            >
+            <button
+              type="submit"
+              id="send-btn"
+              class="bg-secondarycolor-600 text-white font-semibold px-6 py-3 rounded-lg transition duration-200"
+            >
+              Send
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div
+      id="settings-modal"
+      class="hidden fixed inset-0 bg-black-800 bg-opacity-50 flex items-center justify-center"
+    >
+      <div
+        class="bg-color-800 p-6 m-5 rounded-lg max-w-lg w-full"
+        style="max-height: 90vh; overflow-y: auto"
+      >
+        <div class="flex items-center justify-between mb-5">
+          <div class="inline-flex items-end">
+            <span class="text-xl font-bold text-white" id="settings-chat-name"
+            >Chat Name</span>
+            <button id="edit-name-btn" class="px-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 text-gray-400 hover:text-white transition-colors duration-200"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 20h9" />
+                <path
+                  d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"
+                />
+              </svg>
+            </button>
+          </div>
+          <div class="text-white inline-flex items-center">
+            <span id="settings-chat-members" class="text-gray-400 text-sm"
+            >0</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+          </div>
+        </div>
+        <div class="flex items-center w-100 px-4 mb-4">
+          <button
+            id="add-user-btn"
+            class="w-full bg-secondarycolor-600 text-white font-semibold py-2 px-4 rounded-lg"
+          >
+            Add User
+          </button>
+        </div>
+        <div
+          class="px-4 pb-2 border-b flex flex-col gap-2 border-color-700"
+          id="participants-list-search-container"
+        >
+          <input
+            type="text"
+            id="participants-search-bar"
+            class="border w-full p-2 rounded-lg text-white focus:outline-none bg-transparent border-color-500"
+            placeholder="Search users..."
+          >
+        </div>
+        <div
+          id="chat-details"
+          class="rounded-lg p-4 max-h-60 overflow-y-auto mb-6"
+        >
+        </div>
+        <div class="flex justify-between">
+          <button id="close-settings-btn" class="px-4 py-2 text-gray-200 rounded-lg border-2 hover:border-opacity-50 border-opacity-0 text-center border-color-400 bg-color-700">Close</button>
+          <button id="delete-chat-btn" class="px-4 py-2 text-rose-600 font-bold rounded-lg border-2 hover:border-opacity-50 border-opacity-0 text-center border-color-400 bg-color-700">
+            Delete Chat
+          </button>
+        </div>
+      </div>
+    </div>
+    <div
+      id="user-profile-modal"
+      class="fixed inset-0 bg-black-800 bg-opacity-50 flex items-center justify-center hidden"
+    >
+      <div
+        class="bg-color-800 p-6 m-5 rounded-lg max-w-lg w-full"
+        style="max-height: 90vh; overflow-y: auto"
+      >
+        <div class="flex items-center justify-between mb-5">
+          <div class="inline-flex items-end">
+            <span
+              class="text-xl font-bold text-white"
+              id="profile-username-display"
+            >Username</span>
+          </div>
+          <div class="flex justify-between items-center gap-2 overflow-auto">
+            <button
+              id="logout-btn"
+              class="text-sm text-red-500 hover:text-red-600 font-medium"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                fill="none"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                width="25"
+                height="25"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+            <button
+              id="delete-account-btn"
+              class="text-sm bg-red-500 text-grey-600 font-bold rounded-lg p-1"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                fill="none"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                width="25"
+                height="25"
+              >
+                <path d="M3 6h18" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="space-y-4 mb-6">
+          <div class="flex flex-col space-y-1">
+            <span class="text-gray-400 text-sm">User ID</span>
+            <div class="inline-flex items-center">
+              <span class="text-white" id="profile-user-id"
+              >usr_123456789</span>
+              <button
+                class="h-5 w-5 ml-2 flex items-center justify-center"
+                title="Copy User ID"
+                onclick="copy(this.parentNode.firstElementChild.textContent).then(() => {showToast('UserID copied')})"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                  <g
+                    id="Page-1"
+                    stroke="none"
+                    stroke-width="1"
+                    fill="none"
+                    fill-rule="evenodd"
+                  >
+                    <g
+                      id="copy"
+                      fill="white"
+                      transform="translate(85.333333, 42.666667)"
+                    >
+                      <path
+                        d="M341.333333,85.3333333 L341.333333,405.333333 L85.3333333,405.333333 L85.3333333,85.3333333 L341.333333,85.3333333 Z M298.666667,128 L128,128 L128,362.666667 L298.666667,362.666667 L298.666667,128 Z M234.666667,7.10542736e-15 L234.666667,42.6666667 L42.6666667,42.6666667 L42.6666667,298.666667 L1.42108547e-14,298.666667 L1.42108547e-14,7.10542736e-15 L234.666667,7.10542736e-15 Z"
+                      >
+                      </path>
+                    </g>
+                  </g>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="flex flex-col space-y-1">
+            <span class="text-gray-400 text-sm">Account Created</span>
+            <span class="text-white" id="profile-user-creation"
+            >January 1, 2024 at 00:00 UTC</span>
+          </div>
+        </div>
+        <button
+        onclick="this.parentNode.parentNode.classList.add('hidden')"
+        class="w-full text-gray-200 bg-color-700 px-4 py-2 rounded-lg border-2 border-color-400 hover:border-opacity-50 border-opacity-0 text-center"
+      >
+        Close
+      </button>
+      </div>
+    </div>
+    <div
+      id="other-profile-modal"
+      class="fixed inset-0 bg-black-800 bg-opacity-50 flex items-center justify-center hidden"
+    >
+      <div
+        class="bg-color-800 p-6 m-5 rounded-lg max-w-lg w-full"
+        style="max-height: 90vh; overflow-y: auto"
+      >
+        <div class="flex items-center justify-between mb-5">
+          <div class="inline-flex items-end">
+            <span
+              class="text-xl font-bold text-white"
+              id="others-profile-username-display"
+            >Username</span>
+          </div>
+        </div>
+        <div class="space-y-4 mb-6">
+          <div class="flex flex-col space-y-1">
+            <span class="text-gray-400 text-sm">User ID</span>
+            <div class="inline-flex items-center">
+              <span class="text-white" id="others-profile-user-id"
+              >usr_123456789</span>
+              <button
+                class="h-5 w-5 ml-2 flex items-center justify-center"
+                title="Copy User ID"
+                onclick="copy(this.parentNode.firstElementChild.textContent).then(() => {showToast('UserID copied')})"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                  <g
+                    id="Page-1"
+                    stroke="none"
+                    stroke-width="1"
+                    fill="none"
+                    fill-rule="evenodd"
+                  >
+                    <g
+                      id="copy"
+                      fill="white"
+                      transform="translate(85.333333, 42.666667)"
+                    >
+                      <path
+                        d="M341.333333,85.3333333 L341.333333,405.333333 L85.3333333,405.333333 L85.3333333,85.3333333 L341.333333,85.3333333 Z M298.666667,128 L128,128 L128,362.666667 L298.666667,362.666667 L298.666667,128 Z M234.666667,7.10542736e-15 L234.666667,42.6666667 L42.6666667,42.6666667 L42.6666667,298.666667 L1.42108547e-14,298.666667 L1.42108547e-14,7.10542736e-15 L234.666667,7.10542736e-15 Z"
+                      >
+                      </path>
+                    </g>
+                  </g>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="flex flex-col space-y-1">
+            <span class="text-gray-400 text-sm">Account Created</span>
+            <span class="text-white" id="others-profile-user-creation"
+            >January 1, 2024 at 00:00 UTC</span>
+          </div>
+        </div>
+        <button
+        onclick="this.parentNode.parentNode.classList.add('hidden')"
+        class="w-full text-gray-200 bg-color-700 px-4 py-2 rounded-lg border-2 border-color-400 hover:border-opacity-50 border-opacity-0 text-center"
+      >
+        Close
+      </button>
+      </div>
+    </div>
+    <div
+      id="settings-container"
+      class="hidden fixed bg-black-700 bg-opacity-25 mb-6 p-4 top-0 left-0 w-screen h-screen z-50 backdrop-blur-sm overflow-auto hidden"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">Settings</h3>
+        <button
+          id="unopen-settings-btn"
+          class="text-gray-400 hover:text-gray-300 px-2 py-1 border border-color-600 rounded-lg"
+        >
+          Close
+        </button>
+      </div>
+      <button
+        id="reset-settings-btn"
+        class="w-full px-4 py-2 mb-3 rounded-lg border-2 text-center"
+      >
+        Reset Settings
+      </button>
+      <div class="overflow-auto" id="settings-content"></div>
+    </div>
+    <div
+      id="html-preview"
+      class="fixed inset-0 bg-black-800 bg-opacity-50 flex justify-center items-center hidden"
+    >
+      <div class="bg-white w-4/5 h-4/5 rounded-lg shadow-lg">
+        <div
+          id="html-preview-header"
+          class="flex justify-between items-center p-4 bg-color-700 rounded-t-lg"
+        >
+          <span id="html-preview-name" class="text-lg font-semibold text-white"
+          >Filename.etc</span>
+          <div class="flex space-x-2 items-center">
+            <button
+              id="html-preview-open"
+              class="btn btn-blue h-8 w-8 flex items-center justify-center"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                x="0px"
+                y="0px"
+                viewBox="0 0 24 24"
+                fill="white"
+                class="h-5 w-5"
+              >
+                <path
+                  d="M19,21H5c-1.1,0-2-0.9-2-2V5c0-1.1,0.9-2,2-2h7v2H5v14h14v-7h2v7C21,20.1,20.1,21,19,21z"
+                >
+                </path>
+                <path d="M21 10L19 10 19 5 14 5 14 3 21 3z"></path>
+                <path
+                  d="M6.7 8.5H22.3V10.5H6.7z"
+                  transform="rotate(-45.001 14.5 9.5)"
+                >
+                </path>
+              </svg>
+            </button>
+
+            <button
+              id="html-preview-download"
+              class="btn btn-blue h-8 w-8 flex items-center justify-center"
+            >
+              <svg
+                class="h-5 w-5 text-white"
+                stroke="white"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M17 17H17.01M17.4 14H18C18.9319 14 19.3978 14 19.7654 14.1522C20.2554 14.3552 20.6448 14.7446 20.8478 15.2346C21 15.6022 21 16.0681 21 17C21 17.9319 21 18.3978 20.8478 18.7654C20.6448 19.2554 20.2554 19.6448 19.7654 19.8478C19.3978 20 18.9319 20 18 20H6C5.06812 20 4.60218 20 4.23463 19.8478C3.74458 19.6448 3.35523 19.2554 3.15224 18.7654C3 18.3978 3 17.9319 3 17C3 16.0681 3 15.6022 3.15224 15.2346C3.35523 14.7446 3.74458 14.3552 4.23463 14.1522C4.60218 14 5.06812 14 6 14H6.6M12 15V4M12 15L9 12M12 15L15 12"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                </path>
+              </svg>
+            </button>
+
+            <button
+              onclick="document.getElementById('html-preview').classList.add('hidden');"
+              class="btn btn-red h-8 w-8 flex items-center justify-center"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="h-5 w-5 text-white"
+              >
+                <path d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <iframe
+          id="html-preview-iframe"
+          class="w-full h-full border-0 overflow-scroll"
+          sandbox="allow-same-origin allow-forms"
+        ></iframe>
+      </div>
+    </div>
+    <div id="settings-menu" class="hidden fixed inset-0 bg-black-800 bg-opacity-50 flex justify-center items-center">
+      <div class="block items-center bg-color-800 rounded-lg p-6">
+      <button id="open-settings-btn" class="transition-all ease-in-out delay-1000 mb-2 w-full px-4 py-2 bg-color-700 rounded-lg border-2 border-color-400 hover:border-opacity-50 border-opacity-0 text-center text-gray-200 font-semibold">
+        Settings
+      </button>
+    <button id="username-display-btn" class="transition-all ease-in-out delay-1000 mb-2 w-full px-4 py-2 bg-color-700 rounded-lg border-2 border-color-400 hover:border-opacity-50 border-opacity-0 text-center text-gray-200 font-semibold">
+      Profile
+</button>
+<button
+class="transition-all ease-in-out delay-1000 w-full text-gray-200 bg-color-700 px-4 py-2 rounded-lg border-2 border-color-400 hover:border-opacity-50 border-opacity-0 text-center"
+onclick="this.parentNode.parentNode.classList.add('hidden')"
+>
+Close
+</button>
+</div>
+</div>
+    <div
+      id="toast-container"
+      style="position: fixed; left: 50%; transform: translateX(-50%); z-index: 9998"
+    >
+    </div>
+    <script>
+      // Skibidi Chat Script =>
+      const socket = io();
+      const rootUrl = "";
+      const version = "v0.11.0";
+      // Objects
+      const settingsInfo = {
+        loading_time: {
+          default: 0.5,
+          type: "number",
+          name: "Extra loading time when page open (s) max-15",
+          handle: (startUp) => {
+            const progressBar = document.getElementById("load-progress");
+            progressBar.style.setProperty(
+              "--loading-time",
+              `${settings.loading_time}s`,
+            );
+            progressBar.classList.add("animate-progress");
+          },
+        },
+        toast_duration: {
+          default: 3,
+          type: "number",
+          name: "Toast duration (s)",
+        },
+        toast_distance_to_bottom: {
+          default: 5,
+          type: "number",
+          name: "Toast distance to bottom (em)",
+          handle: (startUp) => {
+            document.getElementById("toast-container").style.bottom =
+              `${settings.toast_distance_to_bottom}em`;
+            if (!startUp) {
+              showToast(
+                `Toast distance to bottom set to ${settings.toast_distance_to_bottom}.`,
+              );
+            }
+          },
+        },
+        toast_size: {
+          default: 20,
+          type: "number",
+          name: "Toast font size",
+          handle: (startUp) => {
+            if (!startUp) {
+              showToast(`Toast Font Size set to ${settings.toast_size}.`);
+            }
+          },
+        },
+        toast_close_btn_initial_opacity: {
+          default: 0.5,
+          type: "number",
+          name: "Toast close button initial opacity",
+        },
+        default_chat_name: {
+          default: "New Chat",
+          type: "string",
+          name: "Default chat name",
+        },
+        primary_color: {
+          default: "black",
+          type: "drop",
+          options: [
+            "black",
+            "slate",
+            "gray",
+            "zinc",
+            "neutral",
+            "stone",
+          ],
+          name: "Primary color (reload)",
+          handle: (startUp) => {
+            if (startUp) {
+              for (let i = 100; i < 1000; i += 100) {
+                const needsReplacing = [`.bg-color-${i}`, `.border-color-${i}`];
+                const replacer = [
+                  `bg-${settings.primary_color}-${i}`,
+                  `border-${settings.primary_color}-${i}`,
+                ];
+
+                for (
+                  let replaceIndex = 0;
+                  replaceIndex < needsReplacing.length;
+                  replaceIndex++
+                ) {
+                  const elements = document.querySelectorAll(
+                    needsReplacing[replaceIndex],
+                  );
+                  for (
+                    let elementIndex = 0;
+                    elementIndex < elements.length;
+                    elementIndex++
+                  ) {
+                    const element = elements[elementIndex];
+                    element.classList.remove(needsReplacing[replaceIndex].slice(1));
+                    element.classList.add(replacer[replaceIndex]);
+                  }
+                }
+              }
+            }
+          },
+        },
+        secondary_color: {
+          default: "blue",
+          type: "drop",
+          options: [
+            "blue",
+            "slate",
+            "gray",
+            "zinc",
+            "neutral",
+            "stone",
+            "red",
+            "orange",
+            "amber",
+            "yellow",
+            "lime",
+            "green",
+            "emerald",
+            "teal",
+            "cyan",
+            "sky",
+          ],
+          name: "Secondary color (reload)",
+          handle: (startUp) => {
+            if (startUp) {
+              for (let i = 100; i < 1000; i += 100) {
+                const needsReplacing = [
+                  `.bg-secondarycolor-${i}`,
+                  `.border-secondarycolor-${i}`,
+                ];
+                const replacer = [
+                  `bg-${settings.secondary_color}-${i}`,
+                  `border-${settings.secondary_color}-${i}`,
+                ];
+                for (
+                  let replaceIndex = 0;
+                  replaceIndex < needsReplacing.length;
+                  replaceIndex++
+                ) {
+                  const elements = document.querySelectorAll(
+                    needsReplacing[replaceIndex],
+                  );
+                  for (
+                    let elementIndex = 0;
+                    elementIndex < elements.length;
+                    elementIndex++
+                  ) {
+                    const element = elements[elementIndex];
+                    element.classList.remove(needsReplacing[replaceIndex].slice(1));
+                    element.classList.add(replacer[replaceIndex]);
+                  }
+                }
+              }
+            }
+          },
+        },
+        show_id_instead: {
+          default: false,
+          type: "boolean",
+          name: "Show id instead of username in chat logs",
+        },
+        prevent_right_click: {
+          default: false,
+          type: "boolean",
+          name: "Prevent right click",
+        },
+        show_send_button: {
+          default: true,
+          type: "boolean",
+          name: "Show send button",
+          handle: (startUp) => {
+            document.getElementById("send-btn").style.display =
+              settings.show_send_button ? "" : "none";
+          },
+        },
+        message_box_focus: {
+          default: true,
+          type: "boolean",
+          name: "Focus message box after actions",
+        },
+      };
+      const settings = {};
+      let currentUser = null;
+      let currentChat = null;
+      let uploadedFile = null;
+      let uploadedFileMimeType = null;
+      let fileName = null;
+      // Maps
+      let userColors = new Map();
+      // Arrays
+      const userColorsList = [
+        "#E53E3E",
+        "#38A169",
+        "#805AD5",
+        "#D69E2E",
+        "#3182CE",
+        "#DD6B20",
+        "#319795",
+        "#B83280",
+        "#5A67D8",
+        "#718096",
+      ];
+      let userChats = [];
+      // Numbers
+      let nextColorIndex = 0;
+      let unread = 0;
+      let msgsSinceLastShow = 0;
+      let msgLastTimestamp = 0;
+      let pageindex = 0;
+      // Strings
+      let lastMessageDay = null;
+      let lastMessageSender = null;
+      // Booleans
+      let focused = true;
+      let isMobile = false;
+      //----------------------------------------------//
+      // Utility Functions
+      function copy(text) {
+        return new Promise((resolve, reject) => {
+          if (
+            typeof navigator !== "undefined" &&
+            typeof navigator.clipboard !== "undefined" &&
+            navigator.permissions !== "undefined"
+          ) {
+            const type = "text/plain";
+            const blob = new Blob([text], {
+              type,
+            });
+            const data = [
+              new ClipboardItem({
+                [type]: blob,
+              }),
+            ];
+            navigator.permissions.query({
+              name: "clipboard-write",
+            }).then(
+              (permission) => {
+                if (
+                  permission.state === "granted" || permission.state === "prompt"
+                ) {
+                  navigator.clipboard.write(data).then(resolve, reject).catch(
+                    reject,
+                  );
+                } else {
+                  reject(new Error("Permission not granted!"));
+                }
+              },
+            );
+          } else if (
+            document.queryCommandSupported && document.queryCommandSupported("copy")
+          ) {
+            var textarea = document.createElement("textarea");
+            textarea.textContent = text;
+            textarea.style.position = "fixed";
+            textarea.style.width = "2em";
+            textarea.style.height = "2em";
+            textarea.style.padding = 0;
+            textarea.style.border = "none";
+            textarea.style.outline = "none";
+            textarea.style.boxShadow = "none";
+            textarea.style.background = "transparent";
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try {
+              document.execCommand("copy");
+              document.body.removeChild(textarea);
+              resolve();
+            } catch (e) {
+              document.body.removeChild(textarea);
+              reject(e);
+            }
+          } else {
+            reject(
+              new Error("None of copying methods are supported by this browser!"),
+            );
+          }
+        });
+      }
+
+      function showDesc(text) {
+        document.getElementById("loading-page-desc").textContent = text;
+      }
+
+      async function showLoadingPage() {
+        const loading_page = document.getElementById("loading-page");
+        loading_page.classList.remove("hidden");
+        await new Promise((r) =>
+          setTimeout(
+            r,
+            settings.loading_time <= 15 && settings.loading_time >= 0
+              ? settings.loading_time * 1000
+              : settings.loading_time > 15
+              ? 15 * 1000
+              : settingsInfo.loading_time.default * 1000,
+          )
+        );
+        if (settings.loading_time !== 0) {
+          loading_page.classList.add("opacity-0");
+          setTimeout(() => loading_page.classList.add("hidden"), 500);
+        } else {
+          loading_page.classList.add("hidden");
+        }
+      }
+
+      function isJsonString(str) {
+        try {
+          JSON.parse(str);
+        } catch (e) {
+          return false;
+        }
+        return true;
+      }
+
+      async function trackRunTime(f) {
+        const t1 = Date.now();
+        await f();
+        const t2 = Date.now();
+        const tt = t2 - t1;
+        return tt;
+      }
+      //----------------------------------------------//
+      // Scrolling Functions
+      function triggerScroll() {
+        const element = document.getElementById("message-container");
+        if (
+          Math.abs(
+            element.scrollHeight -
+              element.scrollTop -
+              element.clientHeight,
+          ) < element.clientHeight
+        ) {
+          scroll();
+        }
+      }
+
+      function scroll() {
+        const element = document.getElementById("message-container");
+        element.scrollTo({
+          top: element.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+      //----------------------------------------------//
+      // Chat rendering Functions
+      function getColorForUser(username) {
+        if (!userColors.has(username)) {
+          userColors.set(username, userColorsList[nextColorIndex]);
+          nextColorIndex = (nextColorIndex + 1) % userColorsList.length;
+        }
+        return userColors.get(username);
+      }
+
+      function getChatLogHtml(message, chat) {
+        switch (message.action) {
+          case "account_delete":
+            return `Admin ${
+              settings.show_id_instead
+                ? message.userActed.id
+                : message.userActed.username
+            } deleted their account, deleting this chat.`;
+          case "create_chat":
+            return `Chat ${
+              settings.show_id_instead ? chat.id : message.value
+            } created by ${
+              settings.show_id_instead
+                ? message.userActed.id
+                : message.userActed.username
+            }.`;
+          case "change_chat_name":
+            return `Chat name changed from ${message.value[0]} to ${
+              message.value[1]
+            }.`;
+          case "delete_chat":
+            return `Chat deleted by admin ${
+              settings.show_id_instead
+                ? message.userActed.id
+                : message.userActed.username
+            }.`;
+          case "add_user":
+            return `Admin ${
+              settings.show_id_instead
+                ? message.userActed.id
+                : message.userActed.username
+            } added user ${
+              settings.show_id_instead
+                ? message.userActedOn.id
+                : message.userActedOn.username
+            }.`;
+          case "remove_user":
+            return `Admin ${
+              settings.show_id_instead
+                ? message.userActed.id
+                : message.userActed.username
+            } removed user ${
+              settings.show_id_instead
+                ? message.userActedOn.id
+                : message.userActedOn.username
+            }.`;
+          default:
+            return "Chat log error";
+        }
+      }
+
+      function appendMessage(message, bulk) {
+        if (
+          lastMessageDay !== formatDateToYearMonthDay(new Date(message.timestamp))
+        ) {
+          lastMessageDay = formatDateToYearMonthDay(new Date(message.timestamp));
+          addTimeDisplay(message.timestamp);
+        }
+        const messageContainer = document.getElementById("message-container");
+        if (
+          message.type === "chat" &&
+          message.action
+        ) {
+          const messageElement = document.createElement("div");
+          const messageDiv = document.createElement("div");
+          const messageSpan = document.createElement("span");
+          messageElement.classList.add("w-100", "mt-4", "break-keep");
+          messageDiv.className =
+            `p-1 rounded-lg w-80 mx-auto text-center text-sm text-gray-200 bg-${settings.primary_color}-700`;
+          messageSpan.className = "text-sm";
+          messageSpan.textContent = getChatLogHtml(message, currentChat);
+          messageDiv.appendChild(messageSpan);
+          messageElement.appendChild(messageDiv);
+          messageContainer.appendChild(messageElement);
+          lastMessageSender = null;
+          if (!bulk) {
+            triggerScroll();
+          }
+          return;
+        }
+        const isSent = message.username === currentUser?.username;
+        let showUsername = message.username !== lastMessageSender ||
+          message.timestamp - msgLastTimestamp >= 5 * 60 * 1000;
+        if (!showUsername) msgsSinceLastShow++;
+        if (msgsSinceLastShow > 20 || showUsername) {
+          showUsername = true;
+          msgsSinceLastShow = 0;
+        }
+        const msgOuter = document.createElement("div");
+        msgOuter.classList.add("w-100", "flex");
+
+        const messageElement = document.createElement("div");
+        messageElement.classList.add(
+          "message-bubble",
+          "p-2",
+          "rounded-lg",
+          "max-w-[80%]",
+          "min-w-[25ch]",
+          "inline-block",
+          "w-auto",
+          "justify-center",
+          "relative", // To position the triangle relative to the message bubble
+        );
+        if (isSent) {
+          messageElement.classList.add(
+            "sent",
+            "right-0",
+            `bg-${settings.secondary_color}-600`,
+            "text-white",
+            "ml-auto",
+          );
+          msgOuter.classList.add("justify-end");
+          messageElement.style = "border-top-right-radius: 0%;";
+        } else {
+          messageElement.classList.add(
+            "received",
+            `bg-${settings.primary_color}-700`,
+          );
+          messageElement.style = "border-top-left-radius: 0%;";
+        }
+        if (showUsername) {
+          messageElement.classList.add("mt-4");
+        } else {
+          messageElement.classList.add("mt-2");
+        }
+        if (showUsername) {
+          const div = document.createElement("div");
+          div.className = "mb-1 flex items-center justify-between";
+          const usernameSpan = document.createElement("span");
+          if (isSent) {
+            usernameSpan.className = "text-white text-base font-bold";
+          } else {
+            usernameSpan.className = "text-gray-400 text-base font-bold";
+            usernameSpan.style = `color: ${getColorForUser(message.username)}`;
+          }
+          usernameSpan.textContent = isSent ? "You" : message.username;
+          const timestampSpan = document.createElement("span");
+          timestampSpan.className = "ml-5 text-sm text-gray-300";
+          timestampSpan.textContent = getTimestamp(message.timestamp);
+          div.appendChild(usernameSpan);
+          div.appendChild(timestampSpan);
+          messageElement.appendChild(div);
+        }
+
+        if (message.attachment !== undefined) {
+          if (
+            message.attachment.fileName !== undefined &&
+            message.attachment.uploadedFile !== undefined &&
+            (
+              message.attachment.uploadedFile.startsWith("data:image/png") ||
+              message.attachment.uploadedFile.startsWith("data:image/jpg") ||
+              message.attachment.uploadedFile.startsWith("data:image/jpeg")
+            )
+          ) {
+            const imageDisplay = document.createElement("div");
+            const preClickDisplay = document.createElement("div");
+            const showImageBtn = document.createElement("button");
+            const showImageBtnSvg = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "svg",
+            );
+            const showpath = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path",
+            );
+            const fileNameSpan = document.createElement("span");
+            const downloadFileBtn = document.createElement("button");
+            const downloadImageBtnSvg = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "svg",
+            );
+            const downloadpath = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path",
+            );
+            const image = document.createElement("img");
+
+            imageDisplay.className =
+              `flex mb-1 w-full justify-between overflow-auto text-wrap break-all items-center space-x-3 bg-color-800 border border-${settings.primary_color}-600 bg-${settings.primary_color}-800 hover:bg-${settings.primary_color}-700 text-gray-300 rounded-lg shadow-md transition-all`;
+            preClickDisplay.className =
+              "w-full justify-between align-middle text-wrap break-all items-center";
+            showImageBtn.className = "align-middle p-2";
+            showImageBtn.onclick = () =>
+              openImage(showImageBtn.parentNode.parentNode);
+
+            showImageBtnSvg.setAttribute("fill", "white");
+            showImageBtnSvg.setAttribute("class", "inline-flex mr-5 w-4 h-4");
+            showImageBtnSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+            showImageBtnSvg.setAttribute("viewBox", "0 0 32 32");
+
+            showpath.setAttribute(
+              "d",
+              "M0 26.016q0 2.496 1.76 4.224t4.256 1.76h20q2.464 0 4.224-1.76t1.76-4.224v-20q0-2.496-1.76-4.256t-4.224-1.76h-20q-2.496 0-4.256 1.76t-1.76 4.256v20zM4 26.016v-20q0-0.832 0.576-1.408t1.44-0.608h20q0.8 0 1.408 0.608t0.576 1.408v20q0 0.832-0.576 1.408t-1.408 0.576h-20q-0.832 0-1.44-0.576t-0.576-1.408zM6.016 24q0 0.832 0.576 1.44t1.408 0.576h16q0.832 0 1.408-0.576t0.608-1.44v-0.928q-0.224-0.448-1.12-2.688t-1.6-3.584-1.28-2.112q-0.544-0.576-1.12-0.608t-1.152 0.384-1.152 1.12-1.184 1.568-1.152 1.696-1.152 1.6-1.088 1.184-1.088 0.448q-0.576 0-1.664-1.44-0.16-0.192-0.48-0.608-1.12-1.504-1.6-1.824-0.768-0.512-1.184 0.352-0.224 0.512-0.928 2.24t-1.056 2.56v0.64zM6.016 9.024q0 1.248 0.864 2.112t2.112 0.864 2.144-0.864 0.864-2.112-0.864-2.144-2.144-0.864-2.112 0.864-0.864 2.144z",
+            );
+            fileNameSpan.textContent = message.attachment.fileName;
+            downloadFileBtn.className =
+              `align-middle border-l-2 border-${settings.primary_color}-500 p-2`;
+            downloadFileBtn.onclick = () =>
+              downloadBase64File(
+                message.attachment.uploadedFile,
+                message.attachment.fileName,
+              );
+
+            downloadImageBtnSvg.setAttribute("stroke", "white");
+            downloadImageBtnSvg.setAttribute("fill", "none");
+            downloadImageBtnSvg.setAttribute("class", "inline-flex h-5 w-5");
+            downloadImageBtnSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+            downloadImageBtnSvg.setAttribute("viewBox", "0 0 24 24");
+
+            downloadpath.setAttribute("stroke-width", "2");
+            downloadpath.setAttribute("stroke-linecap", "round");
+            downloadpath.setAttribute("stroke-linejoin", "round");
+            downloadpath.setAttribute(
+              "d",
+              "M17 17H17.01M17.4 14H18C18.9319 14 19.3978 14 19.7654 14.1522C20.2554 14.3552 20.6448 14.7446 20.8478 15.2346C21 15.6022 21 16.0681 21 17C21 17.9319 21 18.3978 20.8478 18.7654C20.6448 19.2554 20.2554 19.6448 19.7654 19.8478C19.3978 20 18.9319 20 18 20H6C5.06812 20 4.60218 20 4.23463 19.8478C3.74458 19.6448 3.35523 19.2554 3.15224 18.7654C3 18.3978 3 17.9319 3 17C3 16.0681 3 15.6022 3.15224 15.2346C3.35523 14.7446 3.74458 14.3552 4.23463 14.1522C4.60218 14 5.06812 14 6 14H6.6M12 15V4M12 15L9 12M12 15L15 12",
+            );
+            showImageBtnSvg.appendChild(showpath);
+            showImageBtn.appendChild(showImageBtnSvg);
+            showImageBtn.appendChild(fileNameSpan);
+            downloadImageBtnSvg.appendChild(downloadpath);
+            downloadFileBtn.appendChild(downloadImageBtnSvg);
+            preClickDisplay.appendChild(showImageBtn);
+            preClickDisplay.appendChild(downloadFileBtn);
+
+            image.className = "max-h-48 h-auto hidden";
+            image.src = message.attachment.uploadedFile;
+            image.alt = message.attachment.fileName;
+            image.onclick = () => openImage(image.parentNode);
+            imageDisplay.appendChild(preClickDisplay);
+            imageDisplay.appendChild(image);
+
+            messageElement.appendChild(imageDisplay);
+          } else if (
+            message.attachment.fileName !== undefined &&
+            message.attachment.uploadedFile !== undefined &&
+            message.attachment.uploadedFile.startsWith("data:text/html")
+          ) {
+            const attachmentButton = document.createElement("button");
+            const filenameSpan = document.createElement("span");
+            const svg = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "svg",
+            );
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            const paths = [
+              "M378.413,0H208.297h-13.182L185.8,9.314L57.02,138.102l-9.314,9.314v13.176v265.514 c0,47.36,38.528,85.895,85.896,85.895h244.811c47.353,0,85.881-38.535,85.881-85.895V85.896C464.294,38.528,425.766,0,378.413,0z M432.497,426.105c0,29.877-24.214,54.091-54.084,54.091H133.602c-29.884,0-54.098-24.214-54.098-54.091V160.591h83.716 c24.885,0,45.077-20.178,45.077-45.07V31.804h170.116c29.87,0,54.084,24.214,54.084,54.092V426.105z",
+              "M163.164,253.19c-5.097,0-8.867,3.652-8.867,9.482v23.453c0,0.489-0.251,0.734-0.726,0.734h-26.993 c-0.475,0-0.726-0.245-0.726-0.734v-23.453c0-5.831-3.771-9.482-8.868-9.482c-5.222,0-8.993,3.652-8.993,9.482v65.144 c0,5.83,3.645,9.475,8.868,9.475c5.111,0,8.993-3.645,8.993-9.475v-24.305c0-0.489,0.251-0.734,0.726-0.734h26.993 c0.475,0,0.726,0.244,0.726,0.734v24.305c0,5.83,3.77,9.475,8.867,9.475c5.223,0,8.993-3.645,8.993-9.475v-65.144 C172.157,256.841,168.387,253.19,163.164,253.19z",
+              "M235.249,253.923h-47.284c-5.46,0-8.993,3.282-8.993,8.023c0,4.615,3.533,7.897,8.993,7.897h13.978 c0.488,0,0.726,0.244,0.726,0.726v57.247c0,5.711,3.771,9.475,8.882,9.475c5.223,0,8.993-3.764,8.993-9.475v-57.247 c0-0.482,0.237-0.726,0.726-0.726h13.978c5.46,0,8.993-3.282,8.993-7.897C244.242,257.204,240.709,253.923,235.249,253.923z",
+              "M318.253,253.19c-5.348,0-8.267,2.919-10.934,9.238l-17.26,39.862h-0.489l-17.623-39.862 c-2.794-6.319-5.712-9.238-11.06-9.238c-5.948,0-9.845,4.134-9.845,10.697v64.781c0,5.467,3.408,8.623,8.268,8.623 c4.622,0,8.029-3.156,8.029-8.623v-39.868h0.6l12.89,29.653c2.541,5.837,4.608,7.541,8.742,7.541c4.133,0,6.2-1.704,8.756-7.541 l12.764-29.653h0.601v39.868c0,5.467,3.281,8.623,8.141,8.623c4.874,0,8.156-3.156,8.156-8.623v-64.781 C327.987,257.323,324.216,253.19,318.253,253.19z",
+              "M389.36,320.645h-29.408c-0.489,0-0.726-0.244-0.726-0.734v-57.24c0-5.712-3.77-9.482-8.867-9.482 c-5.237,0-8.993,3.77-8.993,9.482v64.899c0,5.349,3.518,8.993,8.993,8.993h39.002c5.475,0,8.994-3.282,8.994-8.022 C398.354,323.926,394.835,320.645,389.36,320.645z",
+            ];
+
+            attachmentButton.className =
+              `flex mb-1 w-full justify-between overflow-auto text-wrap break-all items-center p-2 space-x-3 bg-${settings.primary_color}-800 border border-${settings.primary_color}-600 hover:bg-${settings.primary_color}-700 text-gray-300 rounded-lg shadow-md transition-all`;
+            attachmentButton.onclick = () =>
+              openPreview(
+                message.attachment.uploadedFile,
+                message.attachment.fileName,
+              );
+
+            svg.setAttribute("class", "inline-flex h-5 w-5 mr-5");
+            svg.setAttribute("fill", "white");
+            svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+            svg.setAttribute("viewBox", "0 0 512 512");
+
+            paths.forEach((d) => {
+              const path = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "path",
+              );
+              path.setAttribute("class", "text-white");
+              path.setAttribute("d", d);
+              g.appendChild(path);
+            });
+            svg.appendChild(g);
+            attachmentButton.appendChild(svg);
+            filenameSpan.textContent = message.attachment.fileName;
+            attachmentButton.appendChild(filenameSpan);
+            messageElement.appendChild(attachmentButton);
+          } else {
+            const attachmentButton = document.createElement("button");
+            const svg = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "svg",
+            );
+            const path = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path",
+            );
+            const filenameSpan = document.createElement("span");
+
+            attachmentButton.className =
+              `flex mb-1 w-full justify-between overflow-auto text-wrap break-all items-center p-2 space-x-3 bg-${settings.primary_color}-800 border border-${settings.primary_color}-600 hover:bg-${settings.primary_color}-700 text-gray-300 rounded-lg shadow-md transition-all`;
+            attachmentButton.onclick = () =>
+              downloadBase64File(
+                message.attachment.uploadedFile,
+                message.attachment.fileName,
+              );
+
+            svg.setAttribute("class", "inline-flex h-5 w-5 mr-5");
+            svg.setAttribute("stroke", "white");
+            svg.setAttribute("fill", "none");
+            svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+            svg.setAttribute("viewBox", "0 0 24 24");
+
+            path.setAttribute(
+              "d",
+              "M17 17H17.01M17.4 14H18C18.9319 14 19.3978 14 19.7654 14.1522C20.2554 14.3552 20.6448 14.7446 20.8478 15.2346C21 15.6022 21 16.0681 21 17C21 17.9319 21 18.3978 20.8478 18.7654C20.6448 19.2554 20.2554 19.6448 19.7654 19.8478C19.3978 20 18.9319 20 18 20H6C5.06812 20 4.60218 20 4.23463 19.8478C3.74458 19.6448 3.35523 19.2554 3.15224 18.7654C3 18.3978 3 17.9319 3 17C3 16.0681 3 15.6022 3.15224 15.2346C3.35523 14.7446 3.74458 14.3552 4.23463 14.1522C4.60218 14 5.06812 14 6 14H6.6M12 15V4M12 15L9 12M12 15L15 12",
+            );
+            path.setAttribute("stroke-width", "2");
+            path.setAttribute("stroke-linecap", "round");
+            path.setAttribute("stroke-linejoin", "round");
+            svg.appendChild(path);
+            attachmentButton.appendChild(svg);
+            filenameSpan.textContent = message.attachment.fileName;
+            attachmentButton.appendChild(filenameSpan);
+            messageElement.appendChild(attachmentButton);
+          }
+        }
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "text-base text-wrap break-words";
+        msgDiv.textContent = message.message;
+        messageElement.appendChild(msgDiv);
+
+        msgOuter.appendChild(messageElement);
+        messageContainer.appendChild(msgOuter);
+        lastMessageSender = message.username;
+        msgLastTimestamp = message.timestamp;
+        if (!bulk) {
+          triggerScroll();
+        }
+
+        function addTimeDisplay(timestamp) {
+          const d = new Date(timestamp);
+          const messageElement = document.createElement("div");
+          messageElement.classList.add("w-100", "mt-4", "break-keep");
+          const timeDisplayDiv = document.createElement("div");
+          timeDisplayDiv.className =
+            `p-1 rounded-lg w-40 mx-auto text-center text-sm text-gray-100 bg-${settings.primary_color}-500`;
+          const timeDisplaySpan = document.createElement("span");
+          timeDisplaySpan.className = "text-sm";
+          timeDisplaySpan.textContent = d.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          });
+
+          timeDisplayDiv.appendChild(timeDisplaySpan);
+          messageElement.appendChild(timeDisplayDiv);
+
+          document.getElementById("message-container").appendChild(messageElement);
+          lastMessageSender = null;
+        }
+
+        function formatDateToYearMonthDay(date) {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0"); // Month is 0-based, so add 1
+          const day = String(date.getDate()).padStart(2, "0"); // Pad single-digit days with leading zero
+          return `${year}${month}${day}`; // Format as yyyyMMdd
+        }
+      }
+
+      function getTimestamp(timestamp) {
+        const d = new Date(timestamp);
+        const now = new Date();
+        // Helper function to format date as dd/mm/yy hh:mm
+        function formatDate(date) {
+          const day = String(date.getDate()).padStart(2, "0");
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const year = String(date.getFullYear()).slice(2); // Get last 2 digits of year
+          const hours = String(date.getHours()).padStart(2, "0");
+          const minutes = String(date.getMinutes()).padStart(2, "0");
+          return `${day}/${month}/${year} ${hours}:${minutes}`;
+        }
+        // Check if the date is today
+        const isSameDay = d.toDateString() === now.toDateString();
+        if (isSameDay) {
+          return formatDate(d).slice(9); // Only return the time part (hh:mm)
+        }
+        // Check if the date is yesterday
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        const isYesterday = d.toDateString() === yesterday.toDateString();
+        if (isYesterday) {
+          return `Yesterday at ${formatDate(d).slice(9)}`; // Only return the time part (hh:mm)
+        }
+        // Check if the date is within the past 7 days but not today or yesterday
+        const weekAgo = new Date(now);
+        weekAgo.setDate(now.getDate() - 7);
+        if (d > weekAgo) {
+          // Get the day of the week (e.g., "Monday")
+          const dayOfWeek = d.toLocaleString("en-us", {
+            weekday: "long",
+          });
+          return `${dayOfWeek} at ${formatDate(d).slice(9)}`; // Return "Day at hh:mm"
+        }
+        // If the date is older than a week, return the formatted date (dd/mm/yy hh:mm)
+        return formatDate(d);
+      }
+
+      function openImage(btn) {
+        btn.firstElementChild.classList.toggle("hidden");
+        btn.lastElementChild.classList.toggle("hidden");
+      }
+
+      function downloadBase64File(base64, fileName) {
+        const link = document.createElement("a");
+        link.href = base64;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      function openPreview(data, filename) {
+        const previewContainer = document.getElementById("html-preview");
+        const previewIframe = document.getElementById("html-preview-iframe");
+        const previewDownload = document.getElementById("html-preview-download");
+        const previewOpen = document.getElementById("html-preview-open");
+        const previewName = document.getElementById("html-preview-name");
+        const html = window.atob(data.split(",")[1]);
+        previewIframe.contentDocument.open();
+        previewIframe.contentDocument.write(html);
+        previewIframe.contentDocument.close();
+        previewDownload.onclick = () => {
+          downloadBase64File(data, filename);
+        };
+        previewOpen.onclick = () => {
+          openPage(data);
+        };
+        previewName.textContent = filename;
+        previewContainer.classList.remove("hidden");
+      }
+
+      function openPage(data) {
+        const newWindow = window.open(
+          "about:blank",
+          pageindex == 0 ? "_blank" : "Window-" + String(pageindex),
+        );
+        const html = window.atob(data.split(",")[1]);
+        newWindow.document.write(html);
+        newWindow.document.close();
+        pageindex++;
+      }
+
+      function renderChatList() {
+        const chatList = document.querySelector(".chat-list");
+        chatList.innerHTML = "";
+        if (currentChat) {
+          document.getElementById("chat-details").innerHTML = "";
+          document.getElementById("chat-details").appendChild(
+            getChatDetails(currentChat),
+          );
+        }
+        if (userChats.length === 0) {
+          document.getElementById("create-chat-btn").classList.add("hidden");
+          const newChatButton = document.createElement("button");
+          newChatButton.textContent = "No chats to show.";
+          newChatButton.className =
+            `w-full text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 bg-${settings.secondary_color}-600`;
+          newChatButton.innerHTML =
+            `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          <span class="text-break overflow-wrap text-center">Create New Chat</span>`;
+          newChatButton.onclick = async () => {
+            const chatName = await createPromptModal(
+              "Enter chat name:",
+              settings.default_chat_name,
+              30,
+            );
+            if (chatName) {
+              socket.emit("create_chat", {
+                name: chatName.slice(0, 30),
+              });
+            }
+          };
+          chatList.appendChild(newChatButton);
+          return;
+        } else {
+          document.getElementById("create-chat-btn").classList.remove("hidden");
+        }
+
+        userChats.sort((a, b) =>
+          b.userLastMessageTimestamp - a.userLastMessageTimestamp
+        );
+
+        userChats.forEach((chat) => {
+          const chatElement = document.createElement("div");
+          chatElement.classList.add(
+            "chat-item",
+            "transition-all",
+            "ease-in-out",
+            "delay-1000",
+            "p-4",
+            "rounded-lg",
+            "border-2",
+            "hover:border-opacity-50",
+            `border-${settings.primary_color}-200`,
+            `border-opacity-0`,
+            "cursor-pointer",
+            `active:bg-${settings.primary_color}-600`,
+          );
+          if (userChats.indexOf(chat) !== userChats.length - 1) {
+            chatElement.classList.add(
+              "chat-item-border",
+            )
+          }
+
+          if (currentChat && currentChat.id === chat.id) {
+            chatElement.classList.add(`bg-${settings.primary_color}-700`);
+          }
+
+          const chatTitle = document.createElement("div");
+          chatTitle.classList.add(
+            "font-semibold",
+            "text-wrap",
+            "break-keep",
+            "overflow-hidden",
+            "truncate",
+            "flex",
+            "items-center",
+            "justify-between",
+          );
+
+          const chatName = document.createElement("span");
+          chatName.classList.add("text-white", "text-base", "font-bold");
+          chatName.textContent = chat.name.length > 25
+            ? `${chat.name.slice(0, 25)}...`
+            : chat.name;
+
+          const chatTimestamp = document.createElement("span");
+          chatTimestamp.classList.add("ml-5", "text-sm", "text-gray-300");
+          chatTimestamp.textContent = chat?.lastMessage?.timestamp
+            ? getTimestamp(chat.lastMessage.timestamp)
+            : "";
+
+          chatTitle.appendChild(chatName);
+          chatTitle.appendChild(chatTimestamp);
+
+          const messagePreview = document.createElement("div");
+          messagePreview.classList.add(
+            "text-sm",
+            "text-gray-400",
+            "text-wrap",
+            "break-keep",
+            "overflow-hidden",
+            "truncate",
+          );
+
+          const messageSender = chat.lastMessage?.username
+            ? `${chat.lastMessage.username}: `
+            : "";
+          const lastMessage = chat.lastMessage?.message
+            ? chat.lastMessage.message
+            : "No messages yet";
+          messagePreview.textContent = `${messageSender}${
+            lastMessage.length > 20 ? lastMessage.slice(0, 20) + "..." : lastMessage
+          }`;
+
+          const participantInfo = document.createElement("div");
+          participantInfo.classList.add(
+            "text-xs",
+            "text-gray-500",
+            "text-wrap",
+            "break-keep",
+            "overflow-hidden",
+            "truncate",
+          );
+
+          participantInfo.textContent = `${chat.participants.length} member${
+            chat.participants.length > 1 ? "s" : ""
+          }`;
+
+          chatElement.appendChild(chatTitle);
+          chatElement.appendChild(messagePreview);
+          chatElement.appendChild(participantInfo);
+
+          chatElement.addEventListener("click", () => {
+            switchToChat(chat);
+            if (chat) {
+              document.getElementById("chat-details").innerHTML = "";
+              document.getElementById("chat-details").appendChild(
+                getChatDetails(chat),
+              );
+            }
+          });
+
+          chatList.appendChild(chatElement);
+        });
+      }
+
+      function getChatDetails(chat) {
+        if (!chat) return null;
+
+        const sortedParticipants = chat.participantsUsernames.sort((a, b) => {
+          if (a.id === chat.admin.id) return -1;
+          if (b.id === chat.admin.id) return 1;
+          if (a.id === currentUser.id) return -1;
+          if (b.id === currentUser.id) return 1;
+          return 0;
+        });
+
+        const container = document.createElement("div");
+
+        sortedParticipants.forEach((participant) => {
+          const participantElement = document.createElement("button");
+          participantElement.classList.add(
+            "participant-item",
+            "flex",
+            "w-full",
+            "justify-between",
+            "items-center",
+            "mb-2",
+            "p-3",
+            `bg-${settings.primary_color}-700`,
+            "rounded-lg",
+          );
+
+          const leftSide = document.createElement("div");
+          leftSide.classList.add("block", "items-center");
+
+          const username = document.createElement("span");
+          username.classList.add("text-white", "font-medium", "inline-flex");
+          username.textContent = participant.username;
+
+          const topGroup = document.createElement("div");
+          topGroup.className = "flex items-center block";
+          topGroup.appendChild(username);
+
+          const rightSide = document.createElement("div");
+          rightSide.classList.add("flex", "items-center", "gap-2");
+
+          const userId = document.createElement("span");
+          userId.classList.add("text-gray-400", "text-sm");
+          userId.textContent = `${participant.id}`;
+
+          const bottomGroup = document.createElement("div");
+          bottomGroup.className = "flex";
+          bottomGroup.appendChild(userId);
+          leftSide.appendChild(topGroup);
+          leftSide.appendChild(bottomGroup);
+
+          if (participant.id === chat.admin.id) {
+            const adminBadge = document.createElement("span");
+            adminBadge.classList.add(
+              "bg-red-600",
+              "text-white",
+              "text-xs",
+              "font-semibold",
+              "px-2",
+              "py-1",
+              "rounded-lg",
+            );
+            adminBadge.textContent = "Admin";
+            rightSide.appendChild(adminBadge);
+          } else if (participant.id === currentUser.id) {
+            const leaveButton = document.createElement("button");
+            leaveButton.classList.add(
+              "btn",
+              "bg-red-900",
+              "text-white",
+              "text-xs",
+              "font-semibold",
+              "px-2",
+              "py-1",
+              "rounded-lg",
+            );
+            leaveButton.textContent = "Leave";
+            leaveButton.addEventListener("click", leaveChat);
+            rightSide.appendChild(leaveButton);
+          } else if (currentUser.id === chat.admin.id) {
+            const removeButton = document.createElement("button");
+            removeButton.classList.add(
+              "btn",
+              "bg-red-900",
+              "text-white",
+              "text-xs",
+              "font-semibold",
+              "px-2",
+              "py-1",
+              "rounded-lg",
+            );
+            removeButton.textContent = "Remove";
+            removeButton.addEventListener(
+              "click",
+              () => removeUser(participant.id, participant.username),
+            );
+            rightSide.appendChild(removeButton);
+          }
+
+          participantElement.appendChild(leftSide);
+          participantElement.appendChild(rightSide);
+
+          container.appendChild(participantElement);
+        });
+
+        return container; // Return the generated elements as a string
+      }
+
+      //----------------------------------------------//
+      // Chat interaction Functions
+      async function removeUser(id, username) {
+        const confirmed = await createConfirmModal(
+          `Are you sure to remove ${username} from the chat? `,
+        );
+        const chatId = currentChat?.id;
+        if (confirmed && chatId) {
+          socket.emit("remove_user_from_chat", {
+            chatId,
+            userIdToRemove: id,
+          });
+        }
+      }
+
+      function leaveChat() {
+        if (currentChat) {
+          socket.emit("leave_chat", {
+            chatId: currentChat.id,
+          });
+        }
+      }
+
+      function triggerFileInput() {
+        const fileInput = document.getElementById("file-chooser");
+        fileInput.click();
+      }
+
+      function resetFileInput() {
+        const fileInput = document.getElementById("file-chooser");
+        fileInput.value = "";
+      }
+
+      function switchToChat(chat) {
+        if (chat.id === currentChat?.id) {
+          return;
+        }
+        if (isMobile) {
+          mobileSwitchToPane(2);
+        }
+        msgsSinceLastShow = 0;
+        msgLastTimestamp = 0;
+        lastMessageDay = null;
+        uploadedFile = null;
+        uploadedFileMimeType = null;
+        fileName = null;
+        resetFileInput();
+        displayUploadedFile();
+        unread = 0;
+        document.title = "Chat";
+        document.getElementById("participants-search-bar").value = "";
+        document.getElementById("message-container").innerHTML = "";
+        document
+          .getElementById("chat-header-whole")
+          .classList.remove("hidden");
+        document.getElementById("form-div").classList.remove("hidden");
+
+        document.getElementById("chat-header").classList.remove("hidden");
+        document.getElementById("chat-header-members").classList.remove("hidden");
+        document.getElementById("message-container").classList.add(
+          "overflow-y-auto",
+        );
+        document.getElementById("message-container").classList.remove(
+          "overflow-y-hidden",
+        );
+
+        document.getElementById("message-container").classList.remove("hidden");
+        document.getElementById("home-container").classList.add("hidden");
+        currentChat = chat;
+        socket.emit("join_chat", {
+          chatId: chat.id,
+        });
+        if (chat) {
+          document.getElementById("chat-details").innerHTML = "";
+          document.getElementById("chat-details").appendChild(getChatDetails(chat));
+        }
+        const isAdmin = chat.admin.id === currentUser.id;
+        if (isAdmin) {
+          document.getElementById("delete-chat-btn").disabled = false;
+          document.getElementById("delete-chat-btn").classList.remove("hidden");
+        } else {
+          document.getElementById("delete-chat-btn").disabled = true;
+          document.getElementById("delete-chat-btn").classList.add("hidden");
+        }
+        document.getElementById("chat-title").textContent = chat.name;
+        document.getElementById("settings-chat-name").textContent = chat.name;
+        document.getElementById("chat-members").textContent =
+          chat.participants.length;
+        document.getElementById("settings-chat-members").textContent =
+          chat.participants.length;
+        renderChatList();
+      }
+
+      function displayUploadedFile() {
+        if (uploadedFile) {
+          document.getElementById("filename-display").classList.remove("hidden");
+          document.getElementById("filename-display-name").textContent = fileName;
+        } else {
+          document.getElementById("filename-display").classList.add("hidden");
+          document.getElementById("filename-display-name").textContent = "";
+        }
+      }
+
+      function toHome() {
+        socket.emit("to_home");
+        uploadedFile = null;
+        uploadedFileMimeType = null;
+        fileName = null;
+        resetFileInput();
+        displayUploadedFile();
+        currentChat = null;
+        renderChatList();
+        document.getElementById("message-container").classList.add("hidden");
+        document.getElementById("home-container").classList.remove("hidden");
+        document.getElementById("form-div").classList.add("hidden");
+        document.getElementById("settings-modal").classList.add("hidden");
+        document.getElementById("user-profile-modal").classList.add("hidden");
+        document.getElementById("chat-header").classList.add("hidden");
+        document.getElementById("chat-header-members").classList.add("hidden");
+        document.getElementById("message-container").classList.remove(
+          "overflow-y-auto",
+        );
+
+        if (!isMobile) {
+          document
+            .getElementById("chat-header-whole")
+            .classList.add("hidden");
+        } else {
+          document
+            .getElementById("chat-header-whole")
+            .classList.remove("hidden");
+        }
+
+        document.getElementById("message-container").classList.add(
+          "overflow-y-hidden",
+        );
+
+        document.getElementById("chat-title").textContent = "Chat Name";
+        document.getElementById(
+          "chat-members",
+        ).textContent = "0";
+        document.getElementById("settings-chat-members").textContent = "0";
+        document.getElementById("settings-chat-name").textContent = "Chat Name";
+      }
+      //----------------------------------------------//
+      // Popup modals functions
+      function showToast(message) {
+        const toastContainer = document.getElementById("toast-container");
+        const toast = document.createElement("div");
+        const toastId = "toast-" + Date.now();
+        toast.id = toastId;
+        toast.className =
+          `flex text-wrap break-all max-w-[60vw] bg-opacity-70 items-center justify-center bg-${settings.primary_color}-800 text-white px-4 py-2 rounded-lg shadow-lg mb-2 animate-fade-in group`;
+        toast.style.fontSize = settings.toast_size + "px";
+        const textSpan = document.createElement("span");
+        textSpan.className = "inline-flex flex-grow";
+        textSpan.textContent = message;
+        const closeBtn = document.createElement("button");
+        closeBtn.className =
+          `inline-flex ml-auto text-white rounded-full items-center justify-center opacity-${
+            settings.toast_close_btn_initial_opacity * 100
+          } group-hover:opacity-100 transition-opacity`;
+        closeBtn.style =
+          `width: ${settings.toast_size}px; height: ${settings.toast_size}px;`;
+        closeBtn.addEventListener("click", () => {
+          toast.remove();
+        });
+        closeBtn.innerHTML = "&times;";
+        toast.appendChild(textSpan);
+        toast.appendChild(closeBtn);
+        toastContainer.appendChild(toast);
+        setTimeout(() => {
+          const toastElement = document.getElementById(toastId);
+          if (toastElement) {
+            toastElement.classList.add("animate-fade-out");
+            setTimeout(() => {
+              if (document.getElementById(toastId)) {
+                toastElement.remove();
+              }
+            }, 200);
+          }
+        }, settings.toast_duration * 1000);
+      }
+
+      function createConfirmModal(message) {
+        return new Promise((resolve) => {
+          const modal = document.createElement("div");
+          modal.id = "confirm-modal";
+          modal.classList.add(
+            "fixed",
+            "inset-0",
+            "bg-black-900",
+            "bg-opacity-25",
+            "flex",
+            "items-center",
+            "justify-center",
+            "z-50",
+          );
+
+          // Modal content wrapper
+          const modalContent = document.createElement("div");
+          modalContent.classList.add(
+            `bg-${settings.primary_color}-800`,
+            "p-6",
+            "rounded-lg",
+            "max-w-lg",
+            "w-full",
+          );
+
+          // Message section
+          const messageDiv = document.createElement("div");
+          messageDiv.classList.add("mb-4");
+
+          const messageHeader = document.createElement("h2");
+          messageHeader.classList.add("text-xl", "font-bold", "text-white");
+          messageHeader.textContent = message;
+
+          messageDiv.appendChild(messageHeader);
+          modalContent.appendChild(messageDiv);
+
+          // Buttons section
+          const buttonContainer = document.createElement("div");
+          buttonContainer.classList.add("flex", "justify-end", "gap-2");
+
+          // Cancel button
+          const cancelButton = document.createElement("button");
+          cancelButton.id = "confirm-modal-cancel";
+          cancelButton.classList.add(
+            `bg-${settings.primary_color}-600`,
+            `hover:bg-${settings.primary_color}-700`,
+            "text-white",
+            "font-semibold",
+            "py-2",
+            "px-4",
+            "rounded-lg",
+            "transition",
+            "duration-200",
+          );
+          cancelButton.textContent = "Cancel";
+
+          // Confirm button
+          const confirmButton = document.createElement("button");
+          confirmButton.id = "confirm-modal-confirm";
+          confirmButton.classList.add(
+            `bg-${settings.secondary_color}-600`,
+            `hover:bg-${settings.secondary_color}-700`,
+            "text-white",
+            "font-semibold",
+            "py-2",
+            "px-4",
+            "rounded-lg",
+            "transition",
+            "duration-200",
+          );
+          confirmButton.textContent = "Confirm";
+
+          // Append buttons to container
+          buttonContainer.appendChild(cancelButton);
+          buttonContainer.appendChild(confirmButton);
+
+          // Append container to modal content
+          modalContent.appendChild(buttonContainer);
+
+          // Append modal content to modal
+          modal.appendChild(modalContent);
+
+          // Add the modal to the document body
+          document.body.appendChild(modal);
+          document.getElementById("confirm-modal-confirm").addEventListener(
+            "click",
+            () => {
+              document.body.removeChild(modal);
+              resolve(true);
+            },
+          );
+          document.getElementById("confirm-modal-cancel").addEventListener(
+            "click",
+            () => {
+              document.body.removeChild(modal);
+              resolve(false);
+            },
+          );
+          modal.addEventListener("click", (e) => {
+            if (e.target.id === "confirm-modal") {
+              document.body.removeChild(modal);
+              resolve(false);
+            }
+          });
+        });
+      }
+
+      function createPromptModal(message, defaultValue = "", maxLength = 250) {
+        return new Promise((resolve) => {
+          const modal = document.createElement("div");
+          modal.id = "prompt-modal";
+          modal.className =
+            "fixed inset-0 bg-black-900 bg-opacity-25 flex items-center justify-center z-50";
+          const modalContent = document.createElement("div");
+          modalContent.classList.add(
+            `bg-${settings.primary_color}-800`,
+            "p-6",
+            "rounded-lg",
+            "max-w-lg",
+            "w-full",
+          );
+
+          // Create the message header
+          const header = document.createElement("div");
+          header.classList.add("mb-4");
+
+          const title = document.createElement("h2");
+          title.classList.add("text-xl", "font-bold", "text-white", "mb-4");
+          title.textContent = message;
+
+          const input = document.createElement("input");
+          input.type = "text";
+          input.setAttribute("autocomplete", "off");
+          input.id = "prompt-modal-input";
+          input.classList.add(
+            "w-full",
+            "p-3",
+            `bg-transparent`,
+            "text-white",
+            "rounded-lg", 
+            "focus:outline-none",
+            "border",
+            `border-${settings.primary_color}-600`,
+          );
+          input.value = "";
+          input.placeholder = defaultValue;
+          input.maxLength = maxLength;
+
+          header.appendChild(title);
+          header.appendChild(input);
+
+          // Create action buttons
+          const actions = document.createElement("div");
+          actions.classList.add("flex", "justify-end", "gap-2");
+
+          const cancelButton = document.createElement("button");
+          cancelButton.id = "prompt-modal-cancel";
+          cancelButton.classList.add(
+            `bg-${settings.primary_color}-600`,
+            `hover:bg-${settings.primary_color}-700`,
+            "text-white",
+            "font-semibold",
+            "py-2",
+            "px-4",
+            "rounded-lg",
+            "transition",
+            "duration-200",
+          );
+          cancelButton.textContent = "Cancel";
+
+          const submitButton = document.createElement("button");
+          submitButton.id = "prompt-modal-submit";
+          submitButton.classList.add(
+            `bg-${settings.secondary_color}-600`,
+            `hover:bg-${settings.secondary_color}-700`,
+            "text-white",
+            "font-semibold",
+            "py-2",
+            "px-4",
+            "rounded-lg",
+            "transition",
+            "duration-200",
+          );
+          submitButton.textContent = "Submit";
+
+          actions.appendChild(cancelButton);
+          actions.appendChild(submitButton);
+
+          // Combine all elements
+          modalContent.appendChild(header);
+          modalContent.appendChild(actions);
+          modal.appendChild(modalContent);
+          document.body.appendChild(modal);
+          input.focus();
+
+          function handleSubmit() {
+            const value = document.getElementById("prompt-modal-input").value;
+            document.body.removeChild(modal);
+            resolve(value || defaultValue);
+          }
+          document.getElementById("prompt-modal-submit").addEventListener(
+            "click",
+            handleSubmit,
+          );
+          document.getElementById("prompt-modal-cancel").addEventListener(
+            "click",
+            () => {
+              document.body.removeChild(modal);
+              resolve(null);
+            },
+          );
+          input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              handleSubmit();
+            }
+          });
+          modal.addEventListener("click", (e) => {
+            if (e.target.id === "prompt-modal") {
+              document.body.removeChild(modal);
+              resolve(null);
+            }
+          });
+        });
+      }
+      //----------------------------------------------//
+      // Setup Functions
+      function startFocusPolling() {
+        setInterval(() => {
+          if (focused !== document.hasFocus()) {
+            focused = document.hasFocus();
+            if (focused) {
+              unread = 0;
+              document.title = "Chat";
+            }
+          }
+        }, 1000);
+      }
+
+      function prepareUserLogin() {
+        const savedUsername = localStorage.getItem("chatapp:username");
+        const savedPassword = localStorage.getItem("chatapp:password");
+        if (savedUsername && savedPassword) {
+          document.getElementById("username").value = savedUsername;
+          document.getElementById("password").value = savedPassword;
+        }
+      }
+
+      function setHtmlContentListeners_loginPage() {
+        document
+          .getElementById("login-btn")
+          .addEventListener("click", () => {
+            const username = DOMPurify.sanitize(
+              document.getElementById("username").value,
+            );
+            const password = DOMPurify.sanitize(
+              document.getElementById("password").value,
+            );
+            if (username.length < 4) {
+              showToast("Username too short. Username must be > 4 characters.");
+            } else {
+              socket.emit("login", {
+                username,
+                password,
+              });
+              localStorage.setItem("chatapp:username", username);
+              localStorage.setItem("chatapp:password", password);
+            }
+          });
+        document
+          .getElementById("register-btn")
+          .addEventListener("click", () => {
+            const username = DOMPurify.sanitize(
+              document.getElementById("username").value,
+            );
+            const password = DOMPurify.sanitize(
+              document.getElementById("password").value,
+            );
+            if (username.length < 4) {
+              showToast("Username too short. Username must be > 4 characters.");
+            } else {
+              socket.emit("register", {
+                username,
+                password,
+              });
+              localStorage.setItem("chatapp:username", username);
+              localStorage.setItem("chatapp:password", password);
+            }
+          });
+      }
+
+      function setHtmlContentListeners_mainChatPage() {
+        const settingsBtn = document.getElementById('open-settings-menu-btn');
+        const settingsMenu = document.getElementById('settings-menu');
+
+        settingsBtn.addEventListener('click', (event) => {
+          settingsMenu.classList.remove('hidden');
+        });
+
+
+        document
+          .getElementById("create-chat-btn")
+          .addEventListener("click", async () => {
+            const chatName = await createPromptModal(
+              "Enter chat name:",
+              settings.default_chat_name,
+              30,
+            );
+            if (chatName) {
+              socket.emit("create_chat", {
+                name: chatName.slice(0, 30),
+              });
+            }
+          });
+
+        document.getElementById("chats-search-bar").addEventListener(
+          "input",
+          (event) => {
+            const searchTerm = event.target.value.toLowerCase();
+            const chatItems = document.querySelectorAll(".chat-item");
+
+            chatItems.forEach((chatItem) => {
+              const chatName = chatItem.querySelector("span.text-white").textContent
+                .toLowerCase();
+              if (chatName.includes(searchTerm)) {
+                chatItem.style.display = "";
+              } else {
+                chatItem.style.display = "none";
+              }
+            });
+          },
+        );
+
+        document
+          .getElementById("home-btn")
+          .addEventListener("click", () => {
+            if (isMobile) {
+              toHome();
+              mobileSwitchToPane(2);
+              return;
+            }
+            toHome();
+          });
+        document
+          .getElementById("username-display-btn")
+          .addEventListener("click", () => {
+            document.getElementById("settings-menu").classList.add("hidden");
+            document
+              .getElementById("user-profile-modal")
+              .classList.remove("hidden");
+          });
+      }
+
+      function setHtmlContentListeners_chatContainer() {
+        document.getElementById("participants-search-bar").addEventListener(
+          "input",
+          (event) => {
+            const searchTerm = event.target.value.toLowerCase();
+            const participantItems = document.querySelectorAll(".participant-item");
+
+            participantItems.forEach((participantItem) => {
+              const participantName = participantItem.firstElementChild
+                .lastElementChild.textContent.toLowerCase();
+              if (participantName.includes(searchTerm)) {
+                participantItem.style.display = "";
+              } else {
+                participantItem.style.display = "none";
+              }
+            });
+          },
+        );
+        document
+          .getElementById("chat-header")
+          .addEventListener("click", () => {
+            if (!currentChat) return;
+            document
+              .getElementById("settings-modal")
+              .classList.remove("hidden");
+          });
+        document
+          .getElementById("message-form")
+          .addEventListener("submit", (e) => {
+            e.preventDefault();
+            unread = 0;
+            document.title = "Chat";
+            const messageInput = document.getElementById("message-input");
+            const message = messageInput.value.trim().slice(0, 250);
+            if ((message || uploadedFile) && currentUser) {
+              if (uploadedFile && uploadedFileMimeType) {
+                socket.emit("send_message", {
+                  message,
+                  attachment: {
+                    uploadedFile,
+                    mimeType: uploadedFileMimeType,
+                    fileName,
+                  },
+                });
+                uploadedFile = null;
+                uploadedFileMimeType = null;
+                fileName = null;
+                resetFileInput();
+                displayUploadedFile();
+              } else {
+                socket.emit("send_message", {
+                  message,
+                });
+              }
+              messageInput.value = "";
+            }
+          });
+        document
+          .getElementById("down-arrow-btn")
+          .addEventListener("click", () => {
+            scroll();
+          });
+        document.getElementById("message-container")
+          .addEventListener("scroll", (event) => {
+            const downArrowBtn = document
+              .getElementById("down-arrow-btn");
+            const messageContainer = document.getElementById("message-container");
+            const scrolledAllTheWay = messageContainer.scrollHeight -
+                messageContainer.scrollTop -
+                messageContainer.clientHeight <= 0;
+            if (scrolledAllTheWay) {
+              downArrowBtn.classList.add("hidden");
+            } else {
+              downArrowBtn.classList.remove("hidden");
+            }
+          });
+        document.body.addEventListener("contextmenu", function (e) {
+          if (settings.prevent_right_click) {
+            e.preventDefault();
+          }
+        });
+        document.getElementById("file-chooser").addEventListener("change", () => {
+          if (!document.getElementById("file-chooser").files[0]) {
+            return;
+          }
+          prepareFile();
+        });
+        document.getElementById("add-attachment-btn").addEventListener(
+          "click",
+          () => {
+            document.getElementById("file-chooser").click();
+          },
+        );
+        document.getElementById("reset-file-btn").addEventListener("click", () => {
+          showToast("reset");
+          resetFileInput();
+          fileName = null;
+          uploadedFile = null;
+          uploadedFileMimeType = null;
+
+          displayUploadedFile();
+        });
+
+        function prepareFile() {
+          const inputElement = document.getElementById("file-chooser");
+          const file = inputElement.files[0];
+          const maxSizeInBytes = 1 * 1024 * 1024;
+          if (!file) {
+            return;
+          }
+          if (file.size > maxSizeInBytes) {
+            showToast("File size too big. Max of 1mb.");
+            resetFileInput();
+            displayUploadedFile();
+            return;
+          }
+
+          const reader = new FileReader();
+
+          reader.onload = (e) => {
+            const arrayBuffer = e.target.result;
+            uploadedFile = arrayBuffer;
+            uploadedFileMimeType = file.type;
+            fileName = file.name;
+            displayUploadedFile();
+            showToast(`File ${fileName} uploaded.`);
+            if (settings.message_box_focus) {
+              document.getElementById("message-input").focus();
+            }
+          };
+          reader.onerror = function (error) {
+            console.error("Error reading file:", error);
+            showToast("An error occurred while encoding the file.");
+          };
+          reader.readAsArrayBuffer(file);
+        }
+      }
+
+      function setHtmlContentListeners_chatSettingsModal() {
+        document
+          .getElementById("close-settings-btn")
+          .addEventListener("click", () => {
+            document
+              .getElementById("settings-modal")
+              .classList.add("hidden");
+            document.getElementById("participants-search-bar").value = "";
+            const participantItems = document.querySelectorAll(".participant-item");
+
+            participantItems.forEach((participantItem) => {
+              participantItem.style.display = "";
+            });
+          });
+        document.getElementById("edit-name-btn").addEventListener(
+          "click",
+          async () => {
+            if (currentChat) {
+              const newName = await createPromptModal(
+                "Enter chat name:",
+                settings.default_chat_name,
+                30,
+              );
+              if (newName) {
+                const confirmed = await createConfirmModal(
+                  `Are you sure you want to change the chat name to "${
+                    newName.slice(0, 30)
+                  }"?`,
+                );
+                if (confirmed) {
+                  socket.emit("edit_chat_name", {
+                    newName: newName.slice(0, 30),
+                    chatId: currentChat.id,
+                  });
+                }
+              }
+            }
+          },
+        );
+        document
+          .getElementById("add-user-btn")
+          .addEventListener("click", async () => {
+            const userId = await createPromptModal("Enter userid to add:", "", 32);
+            if (userId && currentChat) {
+              socket.emit("add_user_to_chat", {
+                chatId: currentChat.id,
+                userId: userId.trim().slice(0, 11),
+              });
+            }
+          });
+        document
+          .getElementById("delete-chat-btn")
+          .addEventListener("click", async () => {
+            const confirmed = await createConfirmModal(
+              "Are you sure you want to delete this chat?",
+            );
+            if (confirmed) {
+              if (currentChat) {
+                socket.emit("delete_chat", {
+                  chatId: currentChat.id,
+                });
+              }
+            }
+          });
+      }
+
+      function setHtmlContentListeners_userSettingsModal() {
+        const settingsContent = document.getElementById("settings-content");
+        const settingsContainer = document.getElementById("settings-container");
+        const closeSettings = document.getElementById("unopen-settings-btn");
+        closeSettings.addEventListener("click", () => {
+          settingsContainer.classList.add("hidden");
+        });
+        const openSettings = document.getElementById("open-settings-btn");
+        openSettings.addEventListener("click", () => {
+          document.getElementById("settings-menu").classList.add("hidden");
+          settingsContainer.classList.remove("hidden");
+        });
+        document
+          .getElementById("logout-btn")
+          .addEventListener("click", () => {
+            socket.disconnect();
+            socket.connect();
+            document
+              .getElementById("chat-page")
+              .classList.add("hidden");
+            document
+              .getElementById("settings-modal")
+              .classList.add("hidden");
+            document
+              .getElementById("user-profile-modal")
+              .classList.add("hidden");
+            document
+              .getElementById("login-page")
+              .classList.remove("hidden");
+            showToast("Logged out.");
+          });
+        document
+          .getElementById("delete-account-btn")
+          .addEventListener("click", async () => {
+            const confirmed = await createConfirmModal(
+              "Are you sure you want to delete your account? All chats where you are the admin will be deleted.",
+            );
+            if (confirmed) {
+              socket.emit("delete_account");
+            }
+          });
+        document
+          .getElementById("reset-settings-btn")
+          .addEventListener("click", async () => {
+            const confirmed = await createConfirmModal(
+              "Are you sure you want to reset all settings to default?",
+            );
+            if (confirmed) {
+              Object.keys(settings).forEach((key) => {
+                settings[key] = settingsInfo[key].default;
+                const settingInput = document.getElementById(`setting:${key}`);
+                if (settingInput) {
+                  switch (settingsInfo[key].type) {
+                    case "boolean":
+                      settingInput.checked = settings[key];
+                      break;
+                    case "string":
+                      settingInput.value = settings[key];
+                      break;
+                    case "number":
+                      settingInput.value = settings[key];
+                      break;
+                    case "drop":
+                      settingInput.value = settings[key];
+                  }
+                }
+                if (settingsInfo[key].handle) {
+                  settingsInfo[key].handle(false);
+                }
+              });
+              localStorage.setItem("chatapp:settings", JSON.stringify(settings));
+              showToast("Settings reset.");
+            }
+          });
+      }
+
+      function setSocketEvents_data() {
+        socket.on("version", async (v) => {
+          if (v !== version) {
+            if (rootUrl !== "") {
+              const confirmed = await createConfirmModal(
+                `Client and Server version mismatch. Server running ${v} while client on ${version}. Download new version from "${rootUrl}"?`,
+              );
+              if (confirmed) {
+                window.open(`${rootUrl}/download`, target = "_blank");
+              }
+            } else {
+              const confirmed = await createConfirmModal(
+                `Client out of date. Server running ${v} while client on ${version}. Reload?`,
+              );
+              if (confirmed) {
+                window.location.reload();
+              }
+            }
+          }
+        });
+        socket.on("connect_error", () => {
+          showToast("Failed to connect. Retrying...");
+          setTimeout(() => socket.connect(), 3000);
+        });
+        socket.on("connect", () => {
+          console.log("Connected to the server.");
+          showToast("Connected to server.");
+          document
+            .getElementById("chat-page")
+            .classList.add("hidden");
+          document
+            .getElementById("login-page")
+            .classList.remove("hidden");
+          currentUser = null;
+          currentChat = null;
+          userChats = [];
+          unread = 0;
+          msgsSinceLastShow = 0;
+          msgLastTimestamp = 0;
+          lastMessageDay = null;
+          document.title = `Chat${unread !== 0 ? ` (${unread})` : ""}`;
+          userColors = new Map();
+          const savedUsername = localStorage.getItem("chatapp:username");
+          const savedPassword = localStorage.getItem("chatapp:password");
+          if (savedUsername && savedPassword) {
+            document.getElementById("username").value = savedUsername;
+            document.getElementById("password").value = savedPassword;
+          }
+          document.getElementById("register-btn").disabled = false;
+          document.getElementById("login-btn").disabled = false;
+        });
+        socket.on("chats_list", (chats) => {
+          if (userChats.length == 0) {
+            userChats = chats;
+            if (!isMobile) {
+              toHome();
+            } else {
+              toHome();
+              mobileSwitchToPane(1);
+            }
+          } else {
+            userChats = chats;
+          }
+          const index = userChats.findIndex((chat) => chat.id === currentChat?.id);
+          if (index > -1) {
+            currentChat = userChats[index];
+            document.getElementById("chat-title").textContent = currentChat.name;
+            document.getElementById(
+              "chat-members",
+            ).textContent = currentChat.participants.length;
+            document.getElementById("settings-chat-members").textContent =
+              currentChat.participants.length;
+            document.getElementById("settings-chat-name").textContent =
+              currentChat.name;
+          }
+          renderChatList();
+        });
+        socket.on("chat_messages", ({
+          chatId,
+          messages,
+        }) => {
+          if (currentChat && currentChat?.id === chatId) {
+            const messageContainer = document.getElementById("message-container");
+            messageContainer.innerHTML = "";
+            lastMessageSender = null;
+            messages.forEach((message) => {
+              appendMessage(message, true);
+            });
+            setTimeout(scroll, 50);
+          }
+        });
+        socket.on("message_received", ({
+          chatId,
+          message,
+        }) => {
+          if (currentChat && currentChat?.id === chatId) {
+            appendMessage(message);
+            if (!document.hasFocus()) {
+              unread++;
+              document.title = `Chat${unread !== 0 ? ` (${unread})` : ""}`;
+            }
+          }
+        });
+      }
+
+      function setSocketEvents_responses() {
+        socket.on("authenticated", (user) => {
+          currentUser = user;
+          document.getElementById("login-page").classList.add("hidden");
+          document.getElementById("chat-page").classList.remove("hidden");
+          getColorForUser(user.username);
+          document.getElementById("profile-username-display").textContent =
+            user.username;
+          document.getElementById("profile-user-id").textContent = user.id;
+          document.getElementById("profile-user-creation").textContent = new Date(
+            user.creationTime,
+          ).toString();
+          if (!isMobile) {
+            toHome();
+          } else {
+            toHome();
+            mobileSwitchToPane(1);
+          }
+          showToast("Logged in successfully.");
+        });
+        socket.on("registered", (user) => {
+          currentUser = user;
+          document.getElementById("login-page").classList.add("hidden");
+          document.getElementById("chat-page").classList.remove("hidden");
+          getColorForUser(user.username);
+          document.getElementById("profile-username-display").textContent =
+            user.username;
+          document.getElementById("profile-user-id").textContent = user.id;
+          document.getElementById("profile-user-creation").textContent = new Date(
+            user.creationTime,
+          ).toString();
+          if (!isMobile) {
+            toHome();
+          } else {
+            toHome();
+            mobileSwitchToPane(1);
+          }
+          showToast("Registered and logged in successfully.");
+        });
+        socket.on("registration_failed", () => {
+          showToast("Registration failed. Try another username.");
+        });
+        socket.on("authentication_failed", () => {
+          showToast("Authentication failed. Wrong password or username.");
+        });
+        socket.on("user_added", (data) => {
+          const {
+            chatId,
+            chat,
+            user,
+          } = data;
+          const index = userChats.findIndex((chat) => chat.id === currentChat?.id);
+          if (index > -1) {
+            userChats[index] = chat;
+            currentChat = userChats[index];
+            document.getElementById("chat-title").textContent = currentChat.name;
+            document.getElementById(
+              "chat-members",
+            ).textContent = currentChat.participants.length;
+            document.getElementById("settings-chat-members").textContent =
+              currentChat.participants.length;
+          }
+          renderChatList();
+          document
+            .getElementById("settings-modal")
+            .classList.add("hidden");
+          showToast(`User ${user.username} has been added to ${chatId}.`);
+        });
+        socket.on("add_user_failed", () => {
+          showToast("Failed to add user to chat.");
+        });
+        socket.on("user_removed", (data) => {
+          const {
+            user,
+            chatId,
+          } = data;
+          showToast(`User ${user.username} has been removed from ${chatId}`);
+        });
+        socket.on("remove_user_failed", (data) => {
+          const {
+            user,
+            chatId,
+          } = data;
+          showToast(`Failed to remove user ${user.username} from ${chatId}`);
+        });
+        socket.on("removed_from_chat", (data) => {
+          const {
+            chatId,
+          } = data;
+          showToast(`You have been removed from ${chatId} by the Admin.`);
+          if (chatId === currentChat?.id) {
+            if (!isMobile) {
+              toHome();
+            } else {
+              toHome();
+              mobileSwitchToPane(1);
+            }
+          }
+        });
+        socket.on("chat_deleted", ({
+          chatId,
+        }) => {
+          showToast(`Chat of id: ${chatId} has been deleted.`);
+          document
+            .getElementById("settings-modal")
+            .classList.add("hidden");
+          if (!isMobile) {
+            toHome();
+          } else {
+            mobileSwitchToPane(1);
+          }
+        });
+        socket.on("delete_chat_failed", () => {
+          showToast(`Chat of id: ${chatId} failed to delete.`);
+        });
+        socket.on("chat_created", (chat) => {
+          if (userChats.length == 0) {
+            userChats.push(chat);
+          }
+          switchToChat(chat);
+        });
+        socket.on("chat_failed_to_create", () => {
+          showToast(`Failed to create chat.`);
+        });
+        socket.on("left_chat", ({
+          chatId,
+        }) => {
+          showToast(`You left chat of id: ${chatId}.`);
+          document
+            .getElementById("settings-modal")
+            .classList.add("hidden");
+          if (!isMobile) {
+            toHome();
+          } else {
+            toHome();
+            mobileSwitchToPane(1);
+          }
+        });
+        socket.on("leave_chat_failed", () => {
+          showToast(`Failed to leave chat.`);
+        });
+        socket.on("account_deleted", () => {
+          showToast("Account deleted.");
+          document.getElementById("logout-btn").click();
+        });
+        socket.on("account_failed_to_delete", () => {
+          showToast("Account failed to delete.");
+        });
+        socket.on("chat_name_edited", () => {
+          showToast("Chat name edited.");
+        });
+        socket.on("chat_name_editing_failed", () => {
+          showToast("Failed to edit chat name.");
+        });
+      }
+
+      function mobileSwitchToPane(paneNumber) {
+        const left_pane = document.getElementById("left-pane");
+        const right_pane = document.getElementById("right-pane");
+        if (paneNumber === 2) {
+          left_pane.style.display = "none";
+          right_pane.style.display = "flex";
+        } else {
+          if (currentChat) {
+            toHome();
+          }
+          left_pane.style.display = "flex";
+          right_pane.style.display = "none";
+        }
+      }
+
+      function prepareMobileCode() {
+        const mobile_back_btn = document.getElementById("mobile-back-btn");
+        mobile_back_btn.addEventListener("click", () => {
+          toHome();
+          mobileSwitchToPane(1);
+        });
+
+        function changeMobileState() {
+          const x = window.matchMedia("(max-width: 600px)");
+          if (isMobile !== x.matches) {
+            if (x.matches) {
+              isMobile = true;
+
+              const left_pane = document.getElementById("left-pane");
+              const right_pane = document.getElementById("right-pane");
+              left_pane.style.display = "flex";
+              right_pane.style.display = "none";
+              toHome();
+            } else {
+              isMobile = false;
+
+              const left_pane = document.getElementById("left-pane");
+              const right_pane = document.getElementById("right-pane");
+              left_pane.style.display = "flex";
+              right_pane.style.display = "flex";
+              toHome();
+            }
+          }
+        }
+
+        changeMobileState();
+
+        window.addEventListener("resize", changeMobileState);
+      }
+
+      function setHtmlContentListeners_modals() {
+        setHtmlContentListeners_chatSettingsModal();
+        setHtmlContentListeners_userSettingsModal();
+      }
+
+      function setSocketEvents() {
+        setSocketEvents_data();
+        setSocketEvents_responses();
+      }
+
+      function setHtmlContentListeners() {
+        setHtmlContentListeners_loginPage();
+        setHtmlContentListeners_mainChatPage();
+        setHtmlContentListeners_chatContainer();
+        setHtmlContentListeners_modals();
+      }
+
+      function setHtmlContent() {
+        document.getElementById("login-page-version").textContent = version;
+        document.getElementById("chats-search-bar").value = "";
+        document.getElementById("participants-search-bar").value = "";
+        document.getElementById("home-version-display").textContent = version;
+        document.getElementById("download-link").href = `${rootUrl}/download`;
+      }
+
+      function setAppSettings() {
+        const userAppSettingsString = localStorage.getItem("chatapp:settings");
+        if (userAppSettingsString && isJsonString(userAppSettingsString)) {
+          const userAppSettings = JSON.parse(userAppSettingsString);
+          Object.entries(settingsInfo).forEach((entry) => {
+            const [key, _] = entry;
+            if (Object.keys(userAppSettings).includes(key)) {
+              const userAppSettingsValue = userAppSettings[key];
+              const settingValue = getSettingValue(key, userAppSettingsValue);
+              if (settingValue !== null) {
+                settings[key] = settingValue;
+                return;
+              }
+            }
+            // Default
+            settings[key] = settingsInfo[key].default;
+            return;
+          });
+        } else {
+          Object.entries(settingsInfo).forEach((entry) => {
+            const [key, value] = entry;
+            settings[key] = value.default;
+          });
+        }
+
+        localStorage.setItem("chatapp:settings", JSON.stringify(settings));
+
+        function getSettingValue(key, settingValue) {
+          switch (settingsInfo[key].type) {
+            case "number":
+              const numberValue = Number(settingValue);
+              if (numberValue === "NaN") {
+                return null;
+              }
+              return numberValue;
+            case "boolean":
+              const booleanValue = [true, false].includes(settingValue)
+                ? settingValue
+                : null;
+              if (booleanValue === null) {
+                return null;
+              }
+              return booleanValue;
+            case "string":
+              if (settingValue) {
+                return settingValue;
+              }
+              return null;
+            case "drop":
+              if (settingValue) {
+                return settingValue;
+              }
+              return null;
+          }
+          return null;
+        }
+      }
+
+      function renderAppSettings() {
+        const settingsContent = document.getElementById("settings-content");
+        Object.keys(settings).forEach((key) => {
+          const settingDiv = document.createElement("div");
+          settingDiv.className =
+            `flex justify-between items-center border-b border-${settings.primary_color}-700 py-2`;
+          settingDiv.style.height = "3rem";
+          const settingLabel = document.createElement("label");
+          settingLabel.textContent = settingsInfo[key].name;
+          settingLabel.htmlFor = `setting:${key}`;
+          settingLabel.classList.add("text-gray-300");
+          const parentDiv = document.createElement("div");
+          parentDiv.className = "inline-flex items-center ml-5";
+
+          switch (settingsInfo[key].type) {
+            case "number":
+              const settingInputNumber = document.createElement("input");
+              settingInputNumber.id = `setting:${key}`;
+              settingInputNumber.type = "number";
+              settingInputNumber.setAttribute("autocomplete", "off");
+              settingInputNumber.step = "0.01";
+              settingInputNumber.classList.add(
+                "bg-transparent",
+                "border",
+                `border-${settings.primary_color}-600`,
+                "text-gray-200",
+                "text-sm",
+                "rounded-lg",
+                "focus:ring-blue-500",
+                "p-2",
+              );
+              settingInputNumber.addEventListener("change", () => {
+                settings[key] = settingInputNumber.value;
+                localStorage.setItem("chatapp:settings", JSON.stringify(settings));
+              });
+              settingInputNumber.value = settings[key];
+              parentDiv.appendChild(settingInputNumber);
+              if (settingsInfo[key].handle) {
+                settingInputNumber.addEventListener("change", () => {
+                  settingsInfo[key].handle(false);
+                });
+                settingsInfo[key].handle(true);
+              }
+              break;
+            case "boolean":
+              const settingInputBool = document.createElement("input");
+              settingInputBool.id = `setting:${key}`;
+              settingInputBool.type = "checkbox";
+              settingInputBool.checked = settings[key];
+              parentDiv.appendChild(settingInputBool);
+              settingInputBool.addEventListener("change", () => {
+                settings[key] = settingInputBool.checked;
+                localStorage.setItem("chatapp:settings", JSON.stringify(settings));
+              });
+
+              const stylizedCheckbox = document.createElement("label");
+              stylizedCheckbox.className =
+                "flex items-center cursor-pointer relative";
+
+              settingInputBool.className =
+                `peer h-5 w-5 cursor-pointer transition-all appearance-none rounded-lg shadow hover:shadow-md border border-${settings.primary_color}-600 checked:bg-${settings.secondary_color}-600 checked:border-${settings.secondary_color}-600`;
+
+              const checkmark = document.createElement("span");
+              checkmark.className =
+                "absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none";
+
+              const svg = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "svg",
+              );
+              svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+              svg.classList.add("h-4", "w-4");
+              svg.setAttribute("viewBox", "0 0 20 20");
+              svg.setAttribute("fill", "currentColor");
+              svg.setAttribute("stroke", "currentColor");
+              svg.setAttribute("stroke-width", "1");
+
+              const path = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "path",
+              );
+              path.setAttribute("fill-rule", "evenodd");
+              path.setAttribute(
+                "d",
+                "M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z",
+              );
+              path.setAttribute("clip-rule", "evenodd");
+              svg.appendChild(path);
+              checkmark.appendChild(svg);
+
+              stylizedCheckbox.appendChild(settingInputBool);
+              stylizedCheckbox.appendChild(checkmark);
+              parentDiv.appendChild(stylizedCheckbox);
+
+              settingInputBool.addEventListener("change", () => {
+                settings[key] = settingInputBool.checked;
+                localStorage.setItem("chatapp:settings", JSON.stringify(settings));
+              });
+              if (settingsInfo[key].handle) {
+                settingInputBool.addEventListener("change", () => {
+                  settingsInfo[key].handle(false);
+                });
+                settingsInfo[key].handle(true);
+              }
+              break;
+            case "string":
+              const settingInputString = document.createElement("input");
+              settingInputString.id = `setting:${key}`;
+              settingInputString.setAttribute("autocomplete", "off");
+              settingInputString.type = "text";
+              settingInputString.classList.add(
+                "bg-transparent",
+                "border",
+                `border-${settings.primary_color}-600`,
+                "text-gray-200",
+                "text-sm",
+                "rounded-lg",
+                "focus:ring-blue-500",
+                "p-2",
+              );
+              settingInputString.addEventListener("change", () => {
+                settings[key] = settingInputString.value;
+                localStorage.setItem("chatapp:settings", JSON.stringify(settings));
+              });
+              settingInputString.value = settings[key];
+              parentDiv.appendChild(settingInputString);
+              if (settingsInfo[key].handle) {
+                settingInputString.addEventListener("change", () => {
+                  settingsInfo[key].handle(false);
+                });
+                settingsInfo[key].handle(true);
+              }
+              break;
+            case "drop":
+              const dropdown = document.createElement("select");
+              dropdown.id = `setting:${key}`;
+              dropdown.className =
+                `block w-full px-4 py-2 bg-transparent border border-${settings.primary_color}-300 rounded-md`;
+              const labelOption = document.createElement("option");
+              labelOption.disabled = true;
+              labelOption.selected = true;
+              labelOption.textContent = "Select a color";
+              settingsInfo[key].options.forEach((color) => {
+                const option = document.createElement("option");
+                option.className = "text-black hover:text-black-700";
+                option.value = color;
+                option.textContent = color.charAt(0).toUpperCase() + color.slice(1);
+                dropdown.appendChild(option);
+              });
+              dropdown.addEventListener("change", () => {
+                settings[key] = dropdown.value;
+                localStorage.setItem("chatapp:settings", JSON.stringify(settings));
+              });
+              dropdown.value = settings[key];
+              parentDiv.appendChild(dropdown);
+              if (settingsInfo[key].handle) {
+                dropdown.addEventListener("change", () => {
+                  settingsInfo[key].handle(false);
+                });
+                settingsInfo[key].handle(true);
+              }
+              break;
+          }
+
+          settingDiv.appendChild(settingLabel);
+          settingDiv.appendChild(parentDiv);
+          settingsContent.appendChild(settingDiv);
+        });
+      }
+
+      async function runFunctions() {
+        setAppSettings();
+        renderAppSettings();
+        setHtmlContent();
+        setHtmlContentListeners();
+        setSocketEvents();
+        prepareUserLogin();
+        startFocusPolling();
+        prepareMobileCode();
+        showDesc("Starting up...");
+        showLoadingPage();
+      }
+      //----------------------------------------------//
+      // Main
+      async function main() {
+        const setupTime = await trackRunTime(runFunctions);
+        showToast(`Chat App loaded in ${setupTime}ms.`);
+      }
+
+      window.onload = main;
+    </script>
+  </body>
+</html>

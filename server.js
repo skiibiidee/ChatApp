@@ -5,10 +5,12 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.10.0";
+const version = "v0.11.0";
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
+  maxHttpBufferSize: 1e8,
+  pingTimeout: 60000,
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
@@ -21,9 +23,12 @@ const randomCharacters = [...Array(32)]
 
 console.log(randomCharacters);
 
-app.use(express.static('public'));
+app.use(express.static("public"));
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+  res.sendFile(path.join(__dirname, "public/index.html"));
+});
+app.get("/dist/styles.css", (req, res) => {
+  res.sendFile(path.join(__dirname, "dist/styles.css"));
 });
 app.get("/" + randomCharacters, (req, res) => {
   console.log("data requested");
@@ -33,12 +38,21 @@ app.get("/" + randomCharacters, (req, res) => {
   }));
 });
 app.get("/download", (req, res) => {
-  const html = String(fs.readFileSync(path.join(__dirname, "index.html")))
+  const html = String(
+    fs.readFileSync(path.join(__dirname, "public/index.html")),
+  )
     .replaceAll("io()", `io("${process.env["SERVICEURL"]}")`).replaceAll(
       `rootUrl = ""`,
       `rootUrl = "${process.env["SERVICEURL"]}"`,
     )
-    .replaceAll(`href="/favicon-512x512.png"`, `href="${process.env["SERVICEURL"]}/favicon-512x512.png"`);
+    .replaceAll(
+      `href="/favicon-512x512.png"`,
+      `href="${process.env["SERVICEURL"]}/favicon-512x512.png"`,
+    )
+    .replaceAll(
+      `href="/dist/styles.css"`,
+      `href="${process.env["SERVICEURL"]}/dist/styles.css"`,
+    );
   res.setHeader(
     "Content-Disposition",
     `attachment; filename="chat_${version}.html"`,
@@ -118,10 +132,12 @@ function addUserToChat(chatId, userAdding, addedByUser) {
   chat.participantsLastMessageTimestamp[userAdding.id] = Date.now();
   chat.participantsLastMessageTimestamp[addedByUser.id] = Date.now();
 
-
-  const message =
-    `User "${userAdding.username}" [${userAdding.id}] has been added by "${addedByUser.username}" [${addedByUser.id}] to ${chatId}.`;
-  addServerMessage(chatId, message);
+  addServerMessage({
+    chatId: chatId,
+    action: "add_user",
+    userActed: userAdding,
+    userActedOn: addedByUser,
+  });
   needsSaving = true;
 
   return {
@@ -157,10 +173,12 @@ function removeUserFromChat(chatId, userToRemove, removedByUser) {
       chats.splice(chatIndex, 1);
     }
 
-    const message = userToRemove.id == removedByUser.id ?
-      `User "${userToRemove.username}" [${userToRemove.id}] left the chat` :
-      `User "${userToRemove.username}" [${userToRemove.id}] has been removed by "${removedByUser.username}" [${removedByUser.id}] from ${chatId}.`;
-    addServerMessage(chatId, message);
+    addServerMessage({
+      chatId: chatId,
+      action: "remove_user",
+      userActed: removedByUser,
+      userActedOn: userToRemove,
+    });
     needsSaving = true;
 
     return true;
@@ -178,7 +196,7 @@ function getUserChats(userId) {
       participants: chat.participants,
       participantsUsernames: chat.participantsUsernames,
       lastMessage: chat.messages[chat.messages.length - 1] || null,
-      userLastMessageTimestamp: chat.participantsLastMessageTimestamp[userId]
+      userLastMessageTimestamp: chat.participantsLastMessageTimestamp[userId],
     }));
 }
 
@@ -192,16 +210,18 @@ function generateChatId() {
   return "chat-" + Math.random().toString(36).substring(2, 8);
 }
 
-function addServerMessage(chatId, message) {
+function addServerMessage({ chatId, action, userActed, userActedOn, value }) {
   const chat = chats.find((c) => c.id === chatId);
   if (!chat) {
     return null;
   }
   const newMessage = {
     id: generateMessageId(),
-    message: message.slice(0, 250),
-    senderId: "SERVER",
-    username: "SERVER",
+    type: "chat",
+    action,
+    userActed,
+    userActedOn,
+    value,
     timestamp: Date.now(),
   };
 
@@ -222,19 +242,36 @@ function addServerMessage(chatId, message) {
   return newMessage;
 }
 
-function addMessage(chatId, message, senderId) {
+function addMessage(chatId, message, attachment, senderId) {
   const chat = chats.find((c) => c.id === chatId);
   if (!chat || !chat.participants.includes(senderId)) return null;
 
   const newMessage = {
     id: generateMessageId(),
+    type: "user",
     message: message.slice(0, 250),
     senderId,
     username: users.find((u) => u.id === senderId)?.username,
     timestamp: Date.now(),
   };
+  if (attachment) {
+    if (attachment.fileName && attachment.uploadedFile && attachment.mimeType) {
+      const maxSizeInBytes = 1 * 1024 * 1024;
+      if (attachment.uploadedFile.size > maxSizeInBytes) {
+        return;
+      }
+      const base64String = Buffer.from(attachment.uploadedFile).toString(
+        "base64",
+      );
+      const dataUrl = `data:${attachment.mimeType};base64,${base64String}`;
+      newMessage.attachment = {
+        fileName: attachment.fileName,
+        uploadedFile: dataUrl,
+      };
+    }
+  }
 
-  chat.participantsLastMessageTimestamp[senderId] = Date.now()
+  chat.participantsLastMessageTimestamp[senderId] = Date.now();
 
   chat.messages.push(newMessage);
 
@@ -273,7 +310,7 @@ function registerUser(username, password) {
   if (tooShort) {
     return false;
   }
-  const illegalUser = ["SERVER"].includes(username);
+  const illegalUser = [].includes(username);
   if (illegalUser) {
     return null;
   }
@@ -320,10 +357,11 @@ function deleteUser(userId) {
         const isAdmin = chat.admin.id === userId;
         if (isAdmin) {
           deleteChat(chat.id, userId, () => {
-            addServerMessage(
-              chat.id,
-              `Chat "${chat.name}" [${chat.id}] has been deleted by "${user.username}" [${user.id}] as their account has been deleted.`,
-            );
+            addServerMessage({
+              chatId: chat.id,
+              action: "account_delete",
+              userActed: user,
+            });
           });
         } else {
           const removed = removeUserFromChat(chat.id, user, user);
@@ -383,7 +421,6 @@ io.on("connection", (socket) => {
     }
   });
 
-
   socket.on("create_chat", (data) => {
     if (!socket.user) return socket.emit("chat_failed_to_create");
     const {
@@ -394,10 +431,13 @@ io.on("connection", (socket) => {
       socket.user.id,
       socket.user.username,
     );
-    addServerMessage(
-      newChat.id,
-      `Chat "${name}" [${newChat.id}] created by "${socket.user.username}" [${socket.user.id}].`,
-    );
+    addServerMessage({
+      chatId: newChat.id,
+      action: "create_chat",
+      userActed: socket.user,
+      value: name,
+    });
+
     socket.emit("chat_created", newChat);
     const userChats = getUserChats(socket.user.id);
     socket.emit("chats_list", userChats);
@@ -441,12 +481,13 @@ io.on("connection", (socket) => {
     if (!socket.user) return;
     const {
       message,
+      attachment,
     } = data;
 
     const connection = activeConnections.get(socket.id);
     if (!connection) return;
 
-    addMessage(connection.chatId, message, socket.user.id);
+    addMessage(connection.chatId, message, attachment, socket.user.id);
   });
 
   socket.on("add_user_to_chat", (data) => {
@@ -488,10 +529,12 @@ io.on("connection", (socket) => {
       if (chat.participants.includes(socket.user.id)) {
         const oldChatName = chat.name;
         chat.name = newName.slice(0, 30);
-        addServerMessage(
-          chatId,
-          `User "${socket.user.username}" [${socket.user.id}] changed the chat name from ${oldChatName} to ${chat.name}.`,
-        );
+        addServerMessage({
+          chatId: chatId,
+          action: "change_chat_name",
+          userActed: socket.user,
+          value: [oldChatName, chat.name],
+        });
         needsSaving = true;
         io.sockets.sockets.forEach((s) => {
           if (s.user && chat.participants.includes(s.user.id)) {
@@ -520,10 +563,11 @@ io.on("connection", (socket) => {
     const participants = chat.participants;
     if (
       deleteChat(chatId, socket.user.id, () => {
-        addServerMessage(
-          chatId,
-          `Chat "${chat.name}" [${chat.id}] has been deleted by "${socket.user.username}" [${socket.user.id}].`,
-        );
+        addServerMessage({
+          chatId: chatId,
+          action: "delete_chat",
+          userActed: socket.user,
+        });
       })
     ) {
       io.sockets.sockets.forEach((s) => {
@@ -646,11 +690,11 @@ function main() {
     if (needsSaving) {
       needsSaving = false;
       fetch(process.env["GASURL"], {
-          method: "POST",
-          body: JSON.stringify({
-            url: process.env["SERVICEURL"] + "/" + randomCharacters,
-          }),
-        })
+        method: "POST",
+        body: JSON.stringify({
+          url: process.env["SERVICEURL"] + "/" + randomCharacters,
+        }),
+      })
         .then((r) => r.json())
         .then((j) => {
           if (!j.success) {

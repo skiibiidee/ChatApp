@@ -1,5 +1,20 @@
 # CHANGELOG (from v0.10.0)
 
+## v0.12.0
+
+### Added viewing others profile
+
+- Server communication to get data.
+
+### UI changes
+
+- Many `hover:` changes to make app feel more interactive.
+- New settings menu, cleaning up UI.
+- Copy button change.
+- New text color setting.
+- New background setting.
+- New Message Opacity setting.
+
 ## v0.11.0
 
 ### Added message attachments

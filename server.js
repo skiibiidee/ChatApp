@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.11.0";
+const version = "v0.12.0";
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -660,6 +660,17 @@ io.on("connection", (socket) => {
       socket.emit("remove_user_failed", {
         user: userToRemove,
         chatId,
+      });
+    }
+  });
+
+  socket.on("user_lookup", ({ userId }, callback) => {
+    const user = users.find((user) => user.id === userId);
+    if (user) {
+      callback({
+        id: user.id,
+        username: user.username,
+        creationTime: user.creationTime,
       });
     }
   });

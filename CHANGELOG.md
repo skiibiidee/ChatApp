@@ -1,5 +1,12 @@
 # CHANGELOG (from v0.10.0)
 
+## v0.12.1 (Minor)
+
+- Added dropping attachments.
+- Changed chat log logging user data.
+- Autologin setting.
+
+
 ## v0.12.0
 
 ### Added viewing others profile

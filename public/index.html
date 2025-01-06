@@ -938,7 +938,7 @@
       // Skibidi Chat Script =>
       const socket = io();
       const rootUrl = "";
-      const version = "v0.12.0";
+      const version = "v0.12.1";
       // Objects
       const settingsInfo = {
         loading_time: {
@@ -1198,6 +1198,11 @@
           type: "boolean",
           name: "Focus message box after actions",
         },
+        auto_login: {
+          default: false,
+          type: "boolean",
+          name: "Auto Login based on saved details",
+        },
       };
       const settings = {};
       let currentUser = null;
@@ -1233,6 +1238,7 @@
       // Booleans
       let focused = true;
       let isMobile = false;
+      let isDraggingOver = false;
       //----------------------------------------------//
       // Utility Functions
       function updateBackgroundImage() {
@@ -1933,7 +1939,10 @@
         userChats.forEach((chat) => {
           const chatElement = document.createElement("div");
           chatElement.setAttribute("chat-name", chat.name);
-          chatElement.setAttribute("last-message", chat.lastMessage.message);
+          chatElement.setAttribute(
+            "last-message",
+            chat.lastMessage?.message || null,
+          );
           chatElement.classList.add(
             "group",
             "chat-item",
@@ -2729,12 +2738,14 @@
             chatItems.forEach((chatItem) => {
               const chatName = chatItem.getAttribute("chat-name");
               const lastMessage = chatItem.getAttribute("last-message");
-              if (
-                chatName.includes(searchTerm) || lastMessage.includes(searchTerm)
-              ) {
-                chatItem.style.display = "";
-              } else {
-                chatItem.style.display = "none";
+              if (chatName && lastMessage) {
+                if (
+                  chatName.includes(searchTerm) || lastMessage.includes(searchTerm)
+                ) {
+                  chatItem.style.display = "";
+                } else {
+                  chatItem.style.display = "none";
+                }
               }
             });
           },
@@ -2761,6 +2772,31 @@
       }
 
       function setHtmlContentListeners_chatContainer() {
+        document.getElementById("chat-page").addEventListener(
+          "dragover",
+          (event) => {
+            event.preventDefault();
+          },
+        );
+        document.getElementById("chat-page").addEventListener("drop", (event) => {
+          event.preventDefault(); // Allow drop
+          const dt = event.dataTransfer;
+          const files = dt.files;
+
+          if (files.length > 0) {
+            // Assign the first file to the file input
+            const file = files[0];
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+
+            // Replace file input files with the new file
+            document.getElementById("file-chooser").files = dataTransfer.files;
+            if (!document.getElementById("file-chooser").files[0]) {
+              return;
+            }
+            prepareFile();
+          }
+        });
         document.getElementById("participants-search-bar").addEventListener(
           "input",
           (event) => {
@@ -3100,6 +3136,9 @@
           }
           document.getElementById("register-btn").disabled = false;
           document.getElementById("login-btn").disabled = false;
+          if(settings.auto_login) {
+            document.getElementById("login-btn").click();  
+          }
         });
         socket.on("chats_list", (chats) => {
           if (userChats.length == 0) {
@@ -3139,11 +3178,10 @@
               appendMessage(message, true);
             });
 
-                document.getElementById("message-container").scrollTo({
-                  top: document.getElementById("message-container").scrollHeight,
-                  behavior: "instant",
-                })
-        
+            document.getElementById("message-container").scrollTo({
+              top: document.getElementById("message-container").scrollHeight,
+              behavior: "instant",
+            });
           }
         });
         socket.on("message_received", ({

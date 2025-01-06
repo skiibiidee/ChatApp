@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.12.0";
+const version = "v0.12.1";
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -135,8 +135,8 @@ function addUserToChat(chatId, userAdding, addedByUser) {
   addServerMessage({
     chatId: chatId,
     action: "add_user",
-    userActed: userAdding,
-    userActedOn: addedByUser,
+    userActed: { id: userAdding.id, username: userAdding.username },
+    userActedOn: { id: addedByUser.id, username: addedByUser.username },
   });
   needsSaving = true;
 
@@ -176,8 +176,8 @@ function removeUserFromChat(chatId, userToRemove, removedByUser) {
     addServerMessage({
       chatId: chatId,
       action: "remove_user",
-      userActed: removedByUser,
-      userActedOn: userToRemove,
+      userActed: { id: removedByUser.id, username: removedByUser.username },
+      userActedOn: { id: userToRemove.id, username: userToRemove.username },
     });
     needsSaving = true;
 
@@ -210,7 +210,7 @@ function generateChatId() {
   return "chat-" + Math.random().toString(36).substring(2, 8);
 }
 
-function addServerMessage({ chatId, action, userActed, userActedOn, value }) {
+function addServerMessage({ chatId, action, userActed, value }) {
   const chat = chats.find((c) => c.id === chatId);
   if (!chat) {
     return null;
@@ -219,8 +219,7 @@ function addServerMessage({ chatId, action, userActed, userActedOn, value }) {
     id: generateMessageId(),
     type: "chat",
     action,
-    userActed,
-    userActedOn,
+    userActed: { id: userActed.id, username: userActed.username },
     value,
     timestamp: Date.now(),
   };
@@ -360,7 +359,7 @@ function deleteUser(userId) {
             addServerMessage({
               chatId: chat.id,
               action: "account_delete",
-              userActed: user,
+              userActed: { id: user.id, username: user.username },
             });
           });
         } else {
@@ -434,7 +433,7 @@ io.on("connection", (socket) => {
     addServerMessage({
       chatId: newChat.id,
       action: "create_chat",
-      userActed: socket.user,
+      userActed: { id: socket.user.id, username: socket.user.username },
       value: name,
     });
 
@@ -532,7 +531,7 @@ io.on("connection", (socket) => {
         addServerMessage({
           chatId: chatId,
           action: "change_chat_name",
-          userActed: socket.user,
+          userActed: { id: socket.user.id, username: socket.user.username },
           value: [oldChatName, chat.name],
         });
         needsSaving = true;
@@ -566,7 +565,7 @@ io.on("connection", (socket) => {
         addServerMessage({
           chatId: chatId,
           action: "delete_chat",
-          userActed: socket.user,
+          userActed: { id: socket.user.id, username: socket.user.username },
         });
       })
     ) {

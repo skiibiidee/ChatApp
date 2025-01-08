@@ -1,5 +1,9 @@
 # CHANGELOG (from v0.10.0)
 
+## v0.12.2 (Minor)
+
+- Added Searching for users.
+
 ## v0.12.1 (Minor)
 
 - Added dropping attachments.

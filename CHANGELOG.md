@@ -1,5 +1,13 @@
 # CHANGELOG (from v0.10.0)
 
+## v0.13.0
+
+### Added sending stickers
+
+- Server new attachment system.
+- Allows links of attachments.
+- Sticker menu and saving.
+
 ## v0.12.2 (Minor)
 
 - Added Searching for users.
@@ -9,7 +17,6 @@
 - Added dropping attachments.
 - Changed chat log logging user data.
 - Autologin setting.
-
 
 ## v0.12.0
 

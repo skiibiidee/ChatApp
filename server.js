@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.12.2";
+const version = "v0.13.0";
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -36,6 +36,7 @@ app.get("/" + randomCharacters, (req, res) => {
     JSON.stringify({
       chats,
       users,
+      attachments,
     }),
   );
 });
@@ -61,11 +62,33 @@ app.get("/download", (req, res) => {
   res.send(html);
 });
 
+app.get("/file/:index", (req, res) => {
+  // Base64 string including the "data:" prefix
+  if (attachments[req.params.index] === undefined) {
+    res.sendStatus(404);
+    return;
+  }
+  const base64Data = Buffer.from(attachments[req.params.index].data, "base64");
+  const contentType = attachments[req.params.index].mime;
+
+  res.setHeader("Content-Type", contentType); // Optional, as you're sending raw data
+  res.send(base64Data); // Send the base64 data directly
+});
+
 let needsSaving = false;
 let users = [];
 let chats = [];
+let attachments = {};
 
 let activeConnections = new Map();
+
+function getAttachmentIndex() {
+  let index = "attachment-" + Math.random().toString(36).substring(2, 8);
+  if (Object.keys(attachments).includes(index)) {
+    index = "attachment-" + Math.random().toString(36).substring(2, 8);
+  }
+  return index;
+}
 
 function createChat(name, creatorId, creatorUsername) {
   const newChat = {
@@ -98,6 +121,11 @@ function deleteChat(chatId, userId, preDeleteFunction) {
 
   if (chats[chatIndex].admin.id !== userId) return false;
   preDeleteFunction();
+  chats[chatIndex].messages.forEach((message) => {
+    if (message.attachment) {
+      delete attachments[message.attachment.data];
+    }
+  });
   chats.splice(chatIndex, 1);
   needsSaving = true;
   return true;
@@ -137,8 +165,8 @@ function addUserToChat(chatId, userAdding, addedByUser) {
   addServerMessage({
     chatId: chatId,
     action: "add_user",
-    userActed: { id: userAdding.id, username: userAdding.username },
-    userActedOn: { id: addedByUser.id, username: addedByUser.username },
+    userActed: { id: addedByUser.id, username: addedByUser.username },
+    userActedOn: { id: userAdding.id, username: userAdding.username },
   });
   needsSaving = true;
 
@@ -212,7 +240,7 @@ function generateChatId() {
   return "chat-" + Math.random().toString(36).substring(2, 8);
 }
 
-function addServerMessage({ chatId, action, userActed, value }) {
+function addServerMessage({ chatId, action, userActed, userActedOn, value }) {
   const chat = chats.find((c) => c.id === chatId);
   if (!chat) {
     return null;
@@ -221,7 +249,8 @@ function addServerMessage({ chatId, action, userActed, value }) {
     id: generateMessageId(),
     type: "chat",
     action,
-    userActed: { id: userActed.id, username: userActed.username },
+    userActed,
+    userActedOn,
     value,
     timestamp: Date.now(),
   };
@@ -264,10 +293,17 @@ function addMessage(chatId, message, attachment, senderId) {
       const base64String = Buffer.from(attachment.uploadedFile).toString(
         "base64",
       );
-      const dataUrl = `data:${attachment.mimeType};base64,${base64String}`;
-      newMessage.attachment = {
+      const index = getAttachmentIndex();
+      attachments[index] = {
         fileName: attachment.fileName,
-        uploadedFile: dataUrl,
+        data: base64String,
+        mime: attachment.mimeType,
+      };
+      needsSaving = true;
+      newMessage.attachment = {
+        data: index,
+        fileName: attachment.fileName,
+        mime: attachment.mimeType,
       };
     }
   }
@@ -416,11 +452,65 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("send_sticker", ({ data, fileName }) => {
+    if (!socket.user) return;
+    const connection = activeConnections.get(socket.id);
+    if (!connection) return;
+    const chat = chats.find((c) => c.id === connection.chatId);
+    if (!chat || !chat.participants.includes(socket.user.id)) return null;
+
+    const newMessage = {
+      id: generateMessageId(),
+      type: "user",
+      sticker: { data: data, fileName: fileName },
+      senderId: socket.user.id,
+      username: socket.user.username,
+      timestamp: Date.now(),
+    };
+
+    chat.participantsLastMessageTimestamp[socket.user.id] = Date.now();
+
+    chat.messages.push(newMessage);
+
+    needsSaving = true;
+
+    const chatConnections = Array.from(activeConnections.entries())
+      .filter(([, data]) => data.chatId === connection.chatId)
+      .map(([socketId]) => socketId);
+
+    chatConnections.forEach((socketId) => {
+      io.to(socketId).emit("message_received", {
+        chatId: connection.chatId,
+        message: newMessage,
+      });
+    });
+    io.sockets.sockets.forEach((s) => {
+      if (s.user && chat.participants.includes(s.user.id)) {
+        const userChats = getUserChats(s.user.id);
+        s.emit("chats_list", userChats);
+      }
+    });
+
+    return newMessage;
+  });
+  socket.on("make_sticker", ({ file, mime, fileName }) => {
+    if (!socket.user) return;
+    if (!mime.startsWith("image/")) return;
+    const index = getAttachmentIndex();
+    attachments[index] = {
+      fileName: fileName,
+      data: Buffer.from(file).toString(
+        "base64",
+      ),
+      mime: mime,
+    };
+    socket.emit("sticker_created", { data: index, fileName });
+  });
   socket.on("search_user", ({ query }, callback) => {
     if (!socket.user) return;
     const found = users
       .filter((u) => u.username.toLowerCase().includes(query.toLowerCase()))
-      .slice(0,250)
+      .slice(0, 250)
       .map((user) => {
         return {
           username: user.username,
@@ -453,6 +543,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("to_home", () => {
+    if (!socket.user) return;
     const prevConnection = activeConnections.get(socket.id);
     if (prevConnection) {
       socket.leave(prevConnection.chatId);
@@ -717,6 +808,7 @@ fetch(process.env["GASURL"])
     const data = j;
     users = data.users || [];
     chats = data.chats || [];
+    attachments = data.attachments || {};
     console.log("Got data.");
     console.log(data);
 

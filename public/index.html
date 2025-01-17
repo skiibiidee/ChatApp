@@ -90,7 +90,6 @@
         .mobile-button {
           display: flex;
         }
-
       }
 
       @media only screen and (min-width: 600px) {
@@ -413,7 +412,7 @@
               <h1 class="text-4xl font-semibold mb-4">Welcome Back</h1>
               <p>Create Chats and add users using their user ID!</p>
               <p>
-                Your user ID:<br>
+                Your user ID:
                 <span
                   class="border border-color-500 py-1 px-2 rounded-lg border-color-500"
                   id="home-id-display"
@@ -748,11 +747,55 @@
         style="max-height: 90vh; overflow-y: auto"
       >
         <div class="flex items-center justify-between mb-5">
-          <div class="inline-flex items-end">
-            <span
-              class="text-xl font-bold text-textcolor-900"
-              id="profile-username-display"
-            >Username</span>
+          <div class="flex">
+            <div
+              class="cursor-pointer h-16 w-16 overflow-hidden rounded-full mr-2 relative group"
+              id="change-pfp-btn"
+            >
+              <img
+                id="self-pfp"
+                class="object-cover w-full h-full group-hover:opacity-50 transition-opacity duration-200"
+              >
+              <input
+                type="file"
+                class="hidden"
+                id="pfp-upload"
+                accept="image/*"
+              />
+
+              <div
+                id="self-hover-svg"
+                class="absolute inset-0 bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-10 w-10 text-textcolor-900"
+                >
+                  <path d="M12 20h9"></path>
+                  <path
+                    d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"
+                  >
+                  </path>
+                </svg>
+              </div>
+            </div>
+            <div class="block h-full">
+              <span
+                class="block px-2 text-2xl font-bold text-textcolor-900"
+                id="profile-username-display"
+              >Username</span>
+              <span
+                class="block text-textcolor-900 cursor-pointer hover:border-opacity-100 border px-2 border-opacity-0 rounded-lg border-color-400"
+                id="profile-user-id"
+                onclick="copy(this.textContent).then(() => {showToast('UserID copied')})"
+              >usr_123456789</span>
+            </div>
           </div>
           <div class="relative group inline-block">
             <button
@@ -786,33 +829,11 @@
             </div>
           </div>
         </div>
-        <div class="space-y-4 mb-6">
-          <div class="flex flex-col space-y-1">
-            <span class="text-textcolor-400 text-sm">User ID</span>
-            <div class="inline-flex items-center">
-              <span class="text-textcolor-900" id="profile-user-id"
-              >usr_123456789</span>
-              <button
-                class="px-2 py-1 ml-2 flex items-center justify-center border-2 border-color-400 rounded-lg transition-all duration-150 ease-in-out hover:border-opacity-50 border-opacity-25"
-                title="Copy User ID"
-                onclick="copy(this.parentNode.firstElementChild.textContent).then(() => {showToast('UserID copied')})"
-              >
-                Copy
-              </button>
-            </div>
-          </div>
-          <div class="flex flex-col space-y-1">
-            <span class="text-textcolor-400 text-sm">Account Created</span>
-            <span class="text-textcolor-900" id="profile-user-creation"
-            >Mon Jan 1 1975 00:00:00 GMT+0800 (Singapore Standard Time)</span>
-          </div>
+        <div class="flex flex-col space-y-1">
+          <span class="text-textcolor-400 text-sm">Account Created</span>
+          <span class="text-textcolor-900" id="profile-user-creation"
+          >Mon Jan 1 1975 00:00:00 GMT+0800 (Singapore Standard Time)</span>
         </div>
-        <button
-          onclick="this.parentNode.parentNode.classList.add('hidden')"
-          class="transition-all ease-in-out duration-150 w-full text-textcolor-700 bg-color-700 px-4 py-2 rounded-lg border-2 border-color-400 hover:border-opacity-50 border-opacity-0 text-center"
-        >
-          Close
-        </button>
       </div>
     </div>
     <div
@@ -825,50 +846,65 @@
       >
         <div class="flex items-center justify-between mb-5">
           <div class="inline-flex items-end">
-            <span
-              class="text-xl font-bold text-textcolor-900"
-              id="others-profile-username-display"
-            >Username</span>
-          </div>
-        </div>
-        <div class="space-y-4 mb-6">
-          <div class="flex flex-col space-y-1">
-            <span class="text-textcolor-400 text-sm">User ID</span>
-            <div class="inline-flex items-center">
-              <span class="text-textcolor-900" id="others-profile-user-id"
-              >usr_123456789</span>
-              <button
-                class="px-2 py-1 ml-2 flex items-center justify-center border-2 border-color-400 rounded-lg transition-all duration-150 ease-in-out hover:border-opacity-50 border-opacity-25"
-                title="Copy User ID"
-                onclick="copy(this.parentNode.firstElementChild.textContent).then(() => {showToast('UserID copied')})"
+            <div
+              class="relative cursor-pointer h-16 w-16 overflow-hidden rounded-full mr-2 group"
+              id="other-change-pfp-btn"
+            >
+              <img
+                id="other-pfp"
+                class="object-cover w-full h-full group-hover:opacity-50 transition-opacity duration-200"
               >
-                Copy
-              </button>
+              <div
+                id="other-hover-svg"
+                class="absolute inset-0 bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-10 w-10 text-textcolor-900"
+                >
+                  <path d="M12 20h9"></path>
+                  <path
+                    d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"
+                  >
+                  </path>
+                </svg>
+              </div>
+            </div>
+            <div class="block h-full">
+              <span
+                class="block px-2 text-2xl font-bold text-textcolor-900"
+                id="other-profile-username-display"
+              >Username</span>
+              <span
+                class="block text-textcolor-900 cursor-pointer hover:border-opacity-100 border px-2 border-opacity-0 rounded-lg border-color-400"
+                id="other-profile-user-id"
+                onclick="copy(this.textContent).then(() => {showToast('UserID copied')})"
+              >usr_123456789</span>
             </div>
           </div>
-          <div class="flex flex-col space-y-1">
-            <span class="text-textcolor-400 text-sm">Account Created</span>
-            <span class="text-textcolor-900" id="others-profile-user-creation"
-            >Mon Jan 1 1975 00:00:00 GMT+0800 (Singapore Standard Time)</span>
-          </div>
+        </div>
+        <div class="flex flex-col space-y-1">
+          <span class="text-textcolor-400 text-sm">Account Created</span>
+          <span class="text-textcolor-900" id="other-profile-user-creation"
+          >Mon Jan 1 1975 00:00:00 GMT+0800 (Singapore Standard Time)</span>
         </div>
         <button
           id="other-profile-leave-btn"
-          class="transition-all ease-in-out duration-150 w-full py-2 px-4 mb-4 hidden bg-color-700 text-textcolor-900 font-semibold px-2 py-1 rounded-lg border-2 border-red-600 hover:border-opacity-100 border-opacity-0"
+          class="transition-all ease-in-out duration-150 w-full py-2 px-4 mt-2 hidden bg-color-700 text-textcolor-900 font-semibold px-2 py-1 rounded-lg border-2 border-red-600 hover:border-opacity-100 border-opacity-0"
         >
           Leave
         </button>
         <button
           id="other-profile-remove-btn"
-          class="transition-all ease-in-out duration-150 w-full py-2 px-4 mb-4 hidden bg-color-700 text-textcolor-900 font-semibold px-2 py-1 rounded-lg border-2 border-red-600 hover:border-opacity-100 border-opacity-0"
+          class="transition-all ease-in-out duration-150 w-full py-2 px-4 mt-2 hidden bg-color-700 text-textcolor-900 font-semibold px-2 py-1 rounded-lg border-2 border-red-600 hover:border-opacity-100 border-opacity-0"
         >
           Remove
-        </button>
-        <button
-          onclick="this.parentNode.parentNode.classList.add('hidden')"
-          class="transition-all ease-in-out duration-150 w-full text-textcolor-700 bg-color-700 px-4 py-2 rounded-lg border-2 border-color-400 hover:border-opacity-50 border-opacity-0 text-center"
-        >
-          Close
         </button>
       </div>
     </div>
@@ -913,14 +949,14 @@
           <div class="flex space-x-2 items-center">
             <button
               id="html-preview-open"
-              class="h-8 w-8 flex items-center justify-center"
+              class="h-8 w-8 flex items-center justify-center text-textcolor-400"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 x="0px"
                 y="0px"
                 viewBox="0 0 24 24"
-                fill="white"
+                fill="currentColor"
                 class="h-5 w-5"
               >
                 <path
@@ -942,7 +978,7 @@
               >
                 <svg
                   class="h-5 w-5 text-textcolor-900"
-                  stroke="white"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -1064,8 +1100,8 @@
               class="m-2 text-base transition-all ease-in-out duration-150 w-16 h-16 p-4 bg-color-700 rounded-lg border-2 border-color-400 hover:border-opacity-50 border-opacity-0 text-center text-textcolor-700 font-semibold"
             >
               <svg
-                class="inline-flex h-5 w-5"
-                stroke="white"
+                class="inline-flex h-5 w-5 text-textcolor-700"
+                stroke="currentColor"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -1134,7 +1170,7 @@
       // Skibidi Chat Script =>
       const socket = io();
       const rootUrl = "";
-      const version = "v0.13.0";
+      const version = "v0.14.0";
       // Objects
       const settingsInfo = {
         loading_time: {
@@ -1426,7 +1462,6 @@
       let stickers = [];
       // Numbers
       let nextColorIndex = 0;
-      let unread = 0;
       let msgsSinceLastShow = 0;
       let msgLastTimestamp = 0;
       let pageindex = 0;
@@ -1440,6 +1475,15 @@
       let autoLoginTriggered = false;
       //----------------------------------------------//
       // Utility Functions
+      function updateProfilePictures() {
+        const profilePics = document.querySelectorAll(".profile-pic");
+
+        profilePics.forEach((img) => {
+          const currentSrc = img.src.split("?")[0];
+          img.src = `${currentSrc}?v=${Date.now()}`;
+        });
+      }
+
       function updateBackgroundImage() {
         const img = new Image();
         img.onload = function () {
@@ -1632,6 +1676,13 @@
                 : message.userActedOn.username
             }.`;
           case "remove_user":
+            if (message.userActed.id === message.userActedOn.id) {
+              return `${
+              settings.show_id_instead
+                ? message.userActed.id
+                : message.userActed.username
+            } left the chat.`;
+            }
             return `Admin ${
               settings.show_id_instead
                 ? message.userActed.id
@@ -1678,7 +1729,7 @@
         );
       }
 
-      function appendMessage(message, bulk) {
+      function appendMessage(message, bulk, timeStamp) {
         if (
           lastMessageDay !==
             formatDateToYearMonthDay(new Date(message.timestamp))
@@ -1693,7 +1744,13 @@
           const messageElement = document.createElement("div");
           const messageDiv = document.createElement("div");
           const messageSpan = document.createElement("span");
-          messageElement.classList.add("w-100", "mt-4", "break-keep");
+          messageElement.classList.add(
+            "w-100",
+            "mt-4",
+            "break-keep",
+            "items-center",
+            "gap-2",
+          );
           messageDiv.className =
             `p-1 bg-opacity-${settings.message_opacity} rounded-lg w-80 mx-auto text-center text-sm text-${settings.text_color}-900 bg-${settings.primary_color}-700`;
           messageSpan.className = "text-sm";
@@ -1750,8 +1807,18 @@
         }
         if (showUsername) {
           messageElement.classList.add("mt-4");
+          if (isSent) {
+            messageElement.classList.add("mr-2");
+          } else {
+            messageElement.classList.add("ml-2");
+          }
         } else {
           messageElement.classList.add("mt-2");
+          if (isSent) {
+            messageElement.classList.add("mr-12");
+          } else {
+            messageElement.classList.add("ml-12");
+          }
         }
         if (showUsername) {
           const div = document.createElement("div");
@@ -1759,12 +1826,18 @@
           const usernameSpan = document.createElement("span");
           if (isSent) {
             usernameSpan.className =
-              `text-${settings.text_color}-900 text-base font-bold`;
+              `text-${settings.text_color}-900 text-base font-bold cursor-pointer`;
           } else {
-            usernameSpan.className = `text-base font-bold`;
+            usernameSpan.className = `text-base font-bold cursor-pointer`;
             usernameSpan.style = `color: ${getColorForUser(message.username)}`;
           }
           usernameSpan.textContent = isSent ? "You" : message.username;
+          usernameSpan.addEventListener("click", () => {
+            showUserProfile(
+              { username: message.username, id: message.senderId },
+              currentChat,
+            );
+          });
           const timestampSpan = document.createElement("span");
           timestampSpan.className = `ml-5 text-sm text-${settings.text_color}-500`;
           timestampSpan.textContent = getTimestamp(message.timestamp);
@@ -1807,14 +1880,14 @@
             );
             const image = document.createElement("img");
             imageDisplay.className =
-              `block mb-1 w-full justify-between text-wrap overflow-visible break-all items-center space-x-3 border border-${settings.primary_color}-600 bg-${settings.primary_color}-800 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-700 rounded-lg shadow-md transition-all`;
+              `block mb-1 w-full justify-between text-wrap overflow-visible break-all items-center border border-${settings.primary_color}-600 bg-${settings.primary_color}-800 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-700 rounded-lg shadow-md transition-all`;
             detailsDisplay.className =
               `flex border-b-2 border-${settings.primary_color}-500 w-full justify-between align-middle text-wrap break-all items-center`;
             imageNameDisplay.className = "inline-flex align-middle p-2";
             //imageNameDisplay.onclick = () =>
             //  openImage(imageNameDisplay.parentNode.parentNode);
 
-            imageNameDisplaySvg.setAttribute("fill", "white");
+            imageNameDisplaySvg.setAttribute("fill", "currentColor");
             imageNameDisplaySvg.setAttribute(
               "class",
               "inline-flex mr-5 w-6 h-6",
@@ -1838,9 +1911,12 @@
                 message.attachment.fileName,
               );
 
-            downloadImageBtnSvg.setAttribute("stroke", "white");
+            downloadImageBtnSvg.setAttribute("stroke", "currentColor");
             downloadImageBtnSvg.setAttribute("fill", "none");
-            downloadImageBtnSvg.setAttribute("class", "inline-flex h-5 w-5");
+            downloadImageBtnSvg.setAttribute(
+              "class",
+              `inline-flex h-5 w-5 text-${settings.text_color}-700`,
+            );
             downloadImageBtnSvg.setAttribute(
               "xmlns",
               "http://www.w3.org/2000/svg",
@@ -1904,7 +1980,7 @@
             ];
 
             attachmentButton.className =
-              `flex mb-1 w-full justify-between overflow-auto text-wrap break-all items-center p-2 space-x-3 bg-${settings.primary_color}-800 border border-${settings.primary_color}-600 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-700 rounded-lg shadow-md transition-all`;
+              `flex mb-1 w-full justify-between overflow-auto text-wrap break-all items-center p-2 bg-${settings.primary_color}-800 border border-${settings.primary_color}-600 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-700 rounded-lg shadow-md transition-all`;
             attachmentButton.onclick = () =>
               openPreview(
                 `${rootUrl}/file/${message.attachment.data}`,
@@ -1912,7 +1988,7 @@
               );
 
             svg.setAttribute("class", "inline-flex h-5 w-5 mr-5");
-            svg.setAttribute("fill", "white");
+            svg.setAttribute("fill", "currentColor");
             svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
             svg.setAttribute("viewBox", "0 0 512 512");
 
@@ -1953,7 +2029,7 @@
             const filenameSpan = document.createElement("span");
 
             attachmentButton.className =
-              `flex w-full justify-between overflow-auto text-wrap break-all items-center p-2 space-x-3 bg-${settings.primary_color}-800 border border-${settings.primary_color}-600 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-700 rounded-lg shadow-md transition-all`;
+              `flex w-full justify-between overflow-auto text-wrap break-all items-center p-2 bg-${settings.primary_color}-800 border border-${settings.primary_color}-600 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-700 rounded-lg shadow-md transition-all`;
             attachmentButton.onclick = () =>
               download(
                 `${rootUrl}/file/${message.attachment.data}`,
@@ -1961,7 +2037,7 @@
               );
 
             svg.setAttribute("class", "inline-flex h-5 w-5 mr-5");
-            svg.setAttribute("stroke", "white");
+            svg.setAttribute("stroke", "currentColor");
             svg.setAttribute("fill", "none");
             svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
             svg.setAttribute("viewBox", "0 0 24 24");
@@ -1995,7 +2071,7 @@
           msgDiv.classList.add("cursor-pointer");
           const image = document.createElement("img");
 
-          image.className = "h-auto max-h-48 w-auto object-contain";
+          image.className = "h-48 w-auto object-contain";
           image.src = `${rootUrl}/file/${message.sticker.data}`;
           image.alt = message.sticker.fileName;
           msgDiv.classList.add("object-contain");
@@ -2004,9 +2080,35 @@
             messageElement.classList.remove("min-w-[25ch]");
           }
         }
+
         messageElement.appendChild(msgDiv);
 
-        msgOuter.appendChild(messageElement);
+        if (showUsername) {
+          const pfp = document.createElement("img");
+          pfp.className =
+            "w-10 h-10 rounded-full object-cover profile-pic cursor-pointer";
+          pfp.src = `${rootUrl}/pfp/${message.senderId}?v=${timeStamp}`;
+          pfp.addEventListener("click", () => {
+            showUserProfile(
+              { username: message.username, id: message.senderId },
+              currentChat,
+            );
+          });
+          const shouldAddPfpFirst = !isSent;
+
+          if (shouldAddPfpFirst) {
+            msgOuter.appendChild(pfp);
+
+            msgOuter.appendChild(messageElement);
+          } else {
+            msgOuter.appendChild(messageElement);
+
+            msgOuter.appendChild(pfp);
+          }
+        } else {
+          msgOuter.appendChild(messageElement);
+        }
+
         messageContainer.appendChild(msgOuter);
         lastMessageSender = message.username;
         msgLastTimestamp = message.timestamp;
@@ -2243,6 +2345,7 @@
 
           const messagePreview = document.createElement("div");
           messagePreview.classList.add(
+            "inline-flex",
             "text-sm",
             `text-${settings.text_color}-500`,
             "whitespace-nowrap",
@@ -2251,19 +2354,30 @@
             "overflow-hidden",
             "truncate",
           );
-
+          const bottomDiv = document.createElement("div");
+          bottomDiv.className = "flex justify-between overflow-hidden";
+          const unreadSpan = document.createElement("span");
+          unreadSpan.className =
+            `py-0 px-2 text-sm inline-flex rounded-full bg-red-500 ${
+              chat.userUnread ? (chat.userUnread > 0 ? "" : "hidden") : "hidden"
+            }`;
+          unreadSpan.textContent = chat.userUnread;
           const messageSender = chat.lastMessage?.username
             ? `${chat.lastMessage.username}: `
             : "";
           const lastMessage = chat.lastMessage?.message
             ? chat.lastMessage.message
-            : (chat.lastMessage?.sticker ? "Sticker": (chat.lastMessage?.attachment ? "Attachment":"No messages"));
+            : (chat.lastMessage?.sticker
+              ? "Sticker"
+              : (chat.lastMessage?.attachment ? "Attachment" : "No messages"));
           messagePreview.textContent = `${messageSender}${lastMessage}`;
-
+          bottomDiv.appendChild(messagePreview);
+          bottomDiv.appendChild(unreadSpan);
           chatElement.appendChild(chatTitle);
-          chatElement.appendChild(messagePreview);
+          chatElement.appendChild(bottomDiv);
 
           chatElement.addEventListener("click", () => {
+            socket.emit("read_chat", { chatId: chat.id });
             switchToChat(chat);
             if (chat) {
               document.getElementById("chat-details").innerHTML = "";
@@ -2282,12 +2396,37 @@
         const removeButton = document.getElementById(
           "other-profile-remove-btn",
         );
+
+        if (user.id === currentUser.id) {
+          document.getElementById("other-pfp").classList.add(
+            "group-hover:opacity-50",
+          );
+          document.getElementById("other-hover-svg").classList.add(
+            "group-hover:opacity-100",
+          );
+        } else {
+          document.getElementById("other-pfp").classList.remove(
+            "group-hover:opacity-50",
+          );
+          document.getElementById("other-hover-svg").classList.remove(
+            "group-hover:opacity-100",
+          );
+        }
+
+        document.getElementById("other-change-pfp-btn").onclick = () => {
+          if (user.id === currentUser.id) {
+            document.getElementById("pfp-upload").click();
+          }
+        };
         document
           .getElementById("other-profile-modal")
           .classList.remove("hidden");
-        document.getElementById("others-profile-username-display").textContent =
+        document.getElementById("other-profile-username-display").textContent =
           user.username;
-        document.getElementById("others-profile-user-id").textContent = user.id;
+        document.getElementById("other-pfp").src =
+          `${rootUrl}/pfp/${user.id}`;
+
+        document.getElementById("other-profile-user-id").textContent = user.id;
         leaveButton.classList.add("hidden");
         removeButton.classList.add("hidden");
 
@@ -2305,11 +2444,11 @@
         }
         socket.emit("user_lookup", { userId: user.id }, (user) => {
           if (
-            document.getElementById("others-profile-user-id").textContent ===
+            document.getElementById("other-profile-user-id").textContent ===
               user.id
           ) {
             document.getElementById(
-              "others-profile-user-creation",
+              "other-profile-user-creation",
             ).textContent = new Date(user.creationTime).toString();
           }
         });
@@ -2353,7 +2492,20 @@
           );
 
           const leftSide = document.createElement("div");
-          leftSide.classList.add("block", "items-center");
+          leftSide.classList.add("flex", "items-center", "gap-3");
+
+          // Profile Picture
+          const profilePic = document.createElement("img");
+          profilePic.src = `${rootUrl}/pfp/${participant.id}`;
+          profilePic.classList.add(
+            "w-10",
+            "h-10",
+            "rounded-full",
+            "object-cover",
+          );
+
+          const nameBlock = document.createElement("div");
+          nameBlock.classList.add("block");
 
           const username = document.createElement("span");
           username.classList.add(
@@ -2368,9 +2520,6 @@
           topGroup.className = "flex items-center block";
           topGroup.appendChild(username);
 
-          const rightSide = document.createElement("div");
-          rightSide.classList.add("flex", "items-center", "gap-2");
-
           const userId = document.createElement("span");
           userId.classList.add(`text-${settings.text_color}-400`, "text-sm");
           userId.textContent = `${participant.id}`;
@@ -2378,8 +2527,15 @@
           const bottomGroup = document.createElement("div");
           bottomGroup.className = "flex";
           bottomGroup.appendChild(userId);
-          leftSide.appendChild(topGroup);
-          leftSide.appendChild(bottomGroup);
+
+          nameBlock.appendChild(topGroup);
+          nameBlock.appendChild(bottomGroup);
+
+          leftSide.appendChild(profilePic); // Add profile picture
+          leftSide.appendChild(nameBlock); // Add user details
+
+          const rightSide = document.createElement("div");
+          rightSide.classList.add("flex", "items-center", "gap-2");
 
           if (participant.id === chat.admin.id) {
             const adminBadge = document.createElement("span");
@@ -2477,7 +2633,6 @@
         fileName = null;
         resetFileInput();
         displayUploadedFile();
-        unread = 0;
         document.title = "Chat";
         updateBackgroundImage();
         document.getElementById("participants-search-bar").value = "";
@@ -2904,11 +3059,12 @@
           if (focused !== document.hasFocus()) {
             focused = document.hasFocus();
             if (focused) {
-              unread = 0;
-              document.title = "Chat";
+              if (currentChat) {
+                socket.emit("read_chat", { chatId: currentChat.id });
+              }
             }
           }
-        }, 1000);
+        }, 50);
       }
 
       function prepareUserLogin() {
@@ -2968,6 +3124,50 @@
         const searchUserList = document.getElementById("search-user-list");
         const searchUserBtn = document.getElementById("search-user-btn");
         const searchUserModal = document.getElementById("search-user-modal");
+
+        document
+          .getElementById("pfp-upload")
+          .addEventListener("change", async () => {
+            if (!document.getElementById("pfp-upload").files[0]) {
+              return;
+            }
+
+            const file = document.getElementById("pfp-upload").files[0];
+            const maxSizeInBytes = 1 * 1024 * 1024;
+            if (!file) {
+              return;
+            }
+            if (file.size > maxSizeInBytes) {
+              showToast("File size too big. Max of 1mb.");
+              return;
+            }
+
+            const confirm = await createConfirmModal(
+              "Change Profile Picture?",
+            );
+            if (!confirm) return;
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+              const arrayBuffer = e.target.result;
+
+              showToast(`Changing profile picture.`);
+              socket.emit("set_profile_picture", {
+                file: arrayBuffer,
+                mime: file.type,
+              });
+            };
+            reader.onerror = function (error) {
+              console.error("Error reading file:", error);
+              showToast("An error occurred while encoding the file.");
+            };
+            reader.readAsArrayBuffer(file);
+          });
+
+        document.getElementById("change-pfp-btn")
+          .addEventListener("click", () => {
+            document.getElementById("pfp-upload").click();
+          });
 
         searchUserBtn.addEventListener("focus", () => {
           searchUserModal.classList.remove("hidden");
@@ -3126,6 +3326,25 @@
               .getElementById("user-profile-modal")
               .classList.remove("hidden");
           });
+
+        document.getElementById("user-profile-modal").addEventListener(
+          "click",
+          (e) => {
+            if (e.target.id === "user-profile-modal") {
+              document.getElementById("user-profile-modal").classList.add("hidden");
+            }
+          },
+        );
+        document.getElementById("other-profile-modal").addEventListener(
+          "click",
+          (e) => {
+            if (e.target.id === "other-profile-modal") {
+              document.getElementById("other-profile-modal").classList.add(
+                "hidden",
+              );
+            }
+          },
+        );
       }
 
       function setHtmlContentListeners_chatContainer() {
@@ -3252,7 +3471,6 @@
           .getElementById("message-form")
           .addEventListener("submit", (e) => {
             e.preventDefault();
-            unread = 0;
             document.title = "Chat";
             const messageInput = document.getElementById("message-input");
             const message = messageInput.value.trim().slice(0, 250);
@@ -3563,11 +3781,9 @@
           currentUser = null;
           currentChat = null;
           userChats = [];
-          unread = 0;
           msgsSinceLastShow = 0;
           msgLastTimestamp = 0;
           lastMessageDay = null;
-          document.title = `Chat${unread !== 0 ? ` (${unread})` : ""}`;
           userColors = new Map();
           const savedUsername = localStorage.getItem("chatapp:username");
           const savedPassword = localStorage.getItem("chatapp:password");
@@ -3614,23 +3830,23 @@
             const messageContainer = document.getElementById("message-container");
             messageContainer.innerHTML = "";
             lastMessageSender = null;
+            const timeStamp = Date.now()
             messages.forEach((message) => {
-              appendMessage(message, true);
+              appendMessage(message, true, timeStamp);
             });
 
-            document.getElementById("message-container").scrollTo({
-              top: document.getElementById("message-container").scrollHeight,
-              behavior: "instant",
-            });
+            setTimeout(() => {
+              document.getElementById("message-container").scrollTo({
+                top: document.getElementById("message-container").scrollHeight,
+                behavior: "instant",
+              });
+            }, 50);
           }
         });
         socket.on("message_received", ({ chatId, message }) => {
           if (currentChat && currentChat?.id === chatId) {
-            appendMessage(message);
-            if (!document.hasFocus()) {
-              unread++;
-              document.title = `Chat${unread !== 0 ? ` (${unread})` : ""}`;
-            }
+            const timeStamp = Date.now()
+            appendMessage(message, false, timeStamp);
           }
         });
       }
@@ -3643,6 +3859,9 @@
           getColorForUser(user.username);
           document.getElementById("profile-username-display").textContent =
             user.username;
+          document.getElementById("self-pfp").src =
+            `${rootUrl}/pfp/${user.id}`;
+
           document.getElementById("profile-user-id").textContent = user.id;
 
           document.getElementById("home-id-display").textContent = user.id;
@@ -3669,6 +3888,9 @@
           getColorForUser(user.username);
           document.getElementById("profile-username-display").textContent =
             user.username;
+          document.getElementById("self-pfp").src =
+            `${rootUrl}/pfp/${user.id}`;
+
           document.getElementById("profile-user-id").textContent = user.id;
           document.getElementById("home-id-display").textContent = user.id;
 
@@ -3688,6 +3910,10 @@
         });
         socket.on("authentication_failed", () => {
           showToast("Authentication failed. Wrong password or username.");
+        });
+        socket.on("profile_set", () => {
+          showToast("Profile Picture set.");
+          setTimeout(updateProfilePictures, 500);
         });
         socket.on("sticker_created", ({ data, fileName }) => {
           if (Object.keys(stickers).includes(data)) {
@@ -4141,8 +4367,8 @@
 
             if (!response.ok) {
               throw new Error(`Not 2xx response for ${key}`, { cause: response });
-              delete stickers[stickerKeys[i]]
-              localStorage.setItem("chatapp:stickers", JSON.stringify(stickers))
+              delete stickers[stickerKeys[i]];
+              localStorage.setItem("chatapp:stickers", JSON.stringify(stickers));
             } else {
               console.log("Valid response for sticker:", key); // Log success
             }
@@ -4152,11 +4378,15 @@
               err.message,
               err.cause || "",
             );
-            delete stickers[stickerKeys[i]]
-            localStorage.setItem("chatapp:stickers", JSON.stringify(stickers))
+            delete stickers[stickerKeys[i]];
+            localStorage.setItem("chatapp:stickers", JSON.stringify(stickers));
           }
         }
-        updateStickersDisplay()
+        updateStickersDisplay();
+      }
+
+      function startProfileUpdating() {
+        setInterval(updateProfilePictures, 60*1000);
       }
 
       async function runFunctions() {
@@ -4168,6 +4398,7 @@
         setSocketEvents();
         prepareUserLogin();
         startFocusPolling();
+        startProfileUpdating();
         prepareMobileCode();
         checkStickersValidity();
         updateStickersDisplay();

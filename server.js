@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.13.0";
+const version = "v0.14.0";
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -37,6 +37,7 @@ app.get("/" + randomCharacters, (req, res) => {
       chats,
       users,
       attachments,
+      profilePictures,
     }),
   );
 });
@@ -75,10 +76,28 @@ app.get("/file/:index", (req, res) => {
   res.send(base64Data); // Send the base64 data directly
 });
 
+app.get("/pfp/:index", (req, res) => {
+  // Base64 string including the "data:" prefix
+  if (profilePictures[req.params.index] === undefined) {
+    res.setHeader("Content-Type", "image/png");
+    res.send(fs.readFileSync(path.join(__dirname, "public/profile.png")));
+    return;
+  }
+  const base64Data = Buffer.from(
+    profilePictures[req.params.index].data,
+    "base64",
+  );
+  const contentType = profilePictures[req.params.index].mime;
+
+  res.setHeader("Content-Type", contentType); // Optional, as you're sending raw data
+  res.send(base64Data); // Send the base64 data directly
+});
+
 let needsSaving = false;
 let users = [];
 let chats = [];
 let attachments = {};
+let profilePictures = {};
 
 let activeConnections = new Map();
 
@@ -106,6 +125,7 @@ function createChat(name, creatorId, creatorUsername) {
       },
     ],
     participantsLastMessageTimestamp: {},
+    participantsUnread: { creatorId: 0 },
     messages: [],
     created: Date.now(),
   };
@@ -159,8 +179,16 @@ function addUserToChat(chatId, userAdding, addedByUser) {
     id: userAdding.id,
     username: userAdding.username,
   });
+
   chat.participantsLastMessageTimestamp[userAdding.id] = Date.now();
   chat.participantsLastMessageTimestamp[addedByUser.id] = Date.now();
+
+  if (!chat.participantsUnread) {
+    chat.participantsUnread = {};
+  }
+
+  chat.participantsUnread[userAdding.id] = 0;
+  chat.participantsUnread[addedByUser.id] = 0;
 
   addServerMessage({
     chatId: chatId,
@@ -197,6 +225,9 @@ function removeUserFromChat(chatId, userToRemove, removedByUser) {
     chat.participants.splice(index, 1);
     chat.participantsUsernames.splice(index, 1);
     delete chat.participantsLastMessageTimestamp[userId];
+    if (chat.participantsUnread) {
+      delete chat.participantsUnread[userId];
+    }
 
     if (chat.participants.length === 0) {
       const chatIndex = chats.findIndex((c) => c.id === chatId);
@@ -226,7 +257,13 @@ function getUserChats(userId) {
       participants: chat.participants,
       participantsUsernames: chat.participantsUsernames,
       lastMessage: chat.messages[chat.messages.length - 1] || null,
-      userLastMessageTimestamp: chat.participantsLastMessageTimestamp[userId],
+      userLastMessageTimestamp: chat.participantsLastMessageTimestamp[userId] ||
+        0,
+      userUnread: chat.participantsUnread
+        ? (Object.keys(chat.participantsUnread).includes(userId)
+          ? chat.participantsUnread[userId]
+          : 0)
+        : 0,
     }));
 }
 
@@ -309,7 +346,17 @@ function addMessage(chatId, message, attachment, senderId) {
   }
 
   chat.participantsLastMessageTimestamp[senderId] = Date.now();
-
+  if (!chat.participantsUnread) {
+    chat.participantsUnread = {};
+  }
+  chat.participants.forEach((participantID) => {
+    if (chat.participantsUnread[participantID]) {
+      chat.participantsUnread[participantID]++;
+    } else {
+      chat.participantsUnread[participantID] = 1;
+    }
+    chat.participantsUnread[senderId] = 0;
+  });
   chat.messages.push(newMessage);
 
   needsSaving = true;
@@ -382,11 +429,22 @@ function generateMessageId() {
   return "msg-" + Math.random().toString(36).substring(2, 8);
 }
 
+function setProfilePicture(file, mime, userId) {
+  profilePictures[userId] = {
+    data: Buffer.from(file).toString(
+      "base64",
+    ),
+    mime: mime,
+  };
+  return true;
+}
+
 function deleteUser(userId) {
   const user = users.find((user) => user.id === userId);
   const userIndex = users.findIndex((user) => user.id === userId);
   if (userId && user && userIndex > -1) {
     users.splice(userIndex, 1);
+    delete profilePictures[userId];
     needsSaving = true;
 
     chats
@@ -452,6 +510,33 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("set_profile_picture", ({ file, mime }) => {
+    if (!socket.user) return;
+    if (!mime.startsWith("image/")) return;
+    if (setProfilePicture(file, mime, socket.user.id)) {
+      socket.emit("profile_set");
+    }
+  });
+
+  socket.on("read_chat", ({ chatId }) => {
+    if (!socket.user) return;
+    const chat = chats.find((c) => c.id === chatId);
+    if (chat) {
+      if (!chat.participantsUnread) {
+        chat.participantsUnread = {};
+      }
+      chat.participantsUnread[socket.user.id] = 0;
+      needsSaving = true;
+
+      io.sockets.sockets.forEach((s) => {
+        if (s.user && s.user.id === socket.user.id) {
+          const userChats = getUserChats(socket.user.id);
+          s.emit("chats_list", userChats);
+        }
+      });
+    }
+  });
+
   socket.on("send_sticker", ({ data, fileName }) => {
     if (!socket.user) return;
     const connection = activeConnections.get(socket.id);
@@ -469,9 +554,20 @@ io.on("connection", (socket) => {
     };
 
     chat.participantsLastMessageTimestamp[socket.user.id] = Date.now();
+    chat.participantsUnread[socket.user.id] = 0;
 
     chat.messages.push(newMessage);
-
+    if (!chat.participantsUnread) {
+      chat.participantsUnread = {};
+    }
+    chat.participants.forEach((participantID) => {
+      if (chat.participantsUnread[participantID]) {
+        chat.participantsUnread[participantID]++;
+      } else {
+        chat.participantsUnread[participantID] = 1;
+      }
+      chat.participantsUnread[socket.user.id] = 0;
+    });
     needsSaving = true;
 
     const chatConnections = Array.from(activeConnections.entries())
@@ -809,8 +905,8 @@ fetch(process.env["GASURL"])
     users = data.users || [];
     chats = data.chats || [];
     attachments = data.attachments || {};
+    profilePictures = data.profilePictures || {};
     console.log("Got data.");
-    console.log(data);
 
     main();
   })

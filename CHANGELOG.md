@@ -1,5 +1,17 @@
 # CHANGELOG (from v0.10.0)
 
+## v0.14.0
+
+### Added profile picture
+
+- New profile pictures.
+- Shown in chat, and clickable.
+- Profile ui changed.
+
+### Added unread markers
+- Users can catch up easily.
+- For futher features.
+
 ## v0.13.0
 
 ### Added sending stickers

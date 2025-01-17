@@ -511,6 +511,8 @@ module.exports = {
     "bg-opacity-20",
     "bg-opacity-15",
     "bg-opacity-10",
+    "mr-12",
+    "ml-12",
   ],
   theme: {
     extend: {

@@ -1,4 +1,29 @@
-# CHANGELOG (from v0.10.0)
+## v0.15.0
+
+### Added chat pictures
+
+- Added ability to set and update chat profile pictures
+- Chat profile pictures now visible in chat list sidebar
+- Chat profile pictures displayed prominently in chat header
+- Support for uploading custom chat profile pictures
+- Default placeholder image for chats without profile pictures
+
+### Added chat participant profile displays
+
+- Added visual participant list showing profile pictures
+- Displays up to setting set number of participant profile pictures in chat
+  header
+- Shows "+" participant count when exceeding display limit
+- Clicking participant pictures opens their profile
+
+### UI Improvements
+
+- Implemented consistent gradient styling across components
+- Enhanced visual hierarchy with subtle shadows and transitions
+- Improved contrast and readability of text elements
+- Added hover states and interactive feedback
+- Refined spacing and alignment of UI elements
+- Optimized layout for different screen sizes
 
 ## v0.14.0
 
@@ -9,6 +34,7 @@
 - Profile ui changed.
 
 ### Added unread markers
+
 - Users can catch up easily.
 - For futher features.
 
@@ -113,3 +139,5 @@
 ### Other
 
 - Sorted chat list based on last interact.
+
+> CHANGELOG from v0.10.0

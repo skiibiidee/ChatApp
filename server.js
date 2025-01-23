@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.14.0";
+const version = "v0.15.0";
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -30,6 +30,9 @@ app.get("/", (req, res) => {
 app.get("/dist/styles.css", (req, res) => {
   res.sendFile(path.join(__dirname, "dist/styles.css"));
 });
+app.get("/changelog.md", (req, res) => {
+  res.sendFile(path.join(__dirname, "CHANGELOG.md"));
+});
 app.get("/" + randomCharacters, (req, res) => {
   console.log("data requested");
   res.send(
@@ -38,6 +41,7 @@ app.get("/" + randomCharacters, (req, res) => {
       users,
       attachments,
       profilePictures,
+      chatPictures,
     }),
   );
 });
@@ -93,17 +97,35 @@ app.get("/pfp/:index", (req, res) => {
   res.send(base64Data); // Send the base64 data directly
 });
 
+app.get("/chatpicture/:index", (req, res) => {
+  // Base64 string including the "data:" prefix
+  if (chatPictures[req.params.index] === undefined) {
+    res.setHeader("Content-Type", "image/png");
+    res.send(fs.readFileSync(path.join(__dirname, "public/chat.png")));
+    return;
+  }
+  const base64Data = Buffer.from(
+    chatPictures[req.params.index].data,
+    "base64",
+  );
+  const contentType = chatPictures[req.params.index].mime;
+
+  res.setHeader("Content-Type", contentType); // Optional, as you're sending raw data
+  res.send(base64Data); // Send the base64 data directly
+});
+
 let needsSaving = false;
 let users = [];
 let chats = [];
 let attachments = {};
 let profilePictures = {};
+let chatPictures = {};
 
 let activeConnections = new Map();
 
 function getAttachmentIndex() {
   let index = "attachment-" + Math.random().toString(36).substring(2, 8);
-  if (Object.keys(attachments).includes(index)) {
+  while (Object.keys(attachments).includes(index)) {
     index = "attachment-" + Math.random().toString(36).substring(2, 8);
   }
   return index;
@@ -125,10 +147,11 @@ function createChat(name, creatorId, creatorUsername) {
       },
     ],
     participantsLastMessageTimestamp: {},
-    participantsUnread: { creatorId: 0 },
+    participantsUnread: {},
     messages: [],
     created: Date.now(),
   };
+  newChat.participantsUnread[creatorId] = 0;
   newChat.participantsLastMessageTimestamp[creatorId] = Date.now();
   chats.push(newChat);
   needsSaving = true;
@@ -146,6 +169,7 @@ function deleteChat(chatId, userId, preDeleteFunction) {
       delete attachments[message.attachment.data];
     }
   });
+  delete chatPictures[chatId];
   chats.splice(chatIndex, 1);
   needsSaving = true;
   return true;
@@ -201,7 +225,7 @@ function addUserToChat(chatId, userAdding, addedByUser) {
   return {
     success: true,
     chat,
-    user: userAdding,
+    user: { id: userAdding.id, username: userAdding.username },
   };
 }
 
@@ -274,7 +298,11 @@ function getChatMessages(chatId, userId) {
 }
 
 function generateChatId() {
-  return "chat-" + Math.random().toString(36).substring(2, 8);
+  let chatId = "chat-" + Math.random().toString(36).substring(2, 8);
+  while (chats.find((chat) => chat.id === chatId)) {
+    chatId = "chat-" + Math.random().toString(36).substring(2, 8);
+  }
+  return chatId
 }
 
 function addServerMessage({ chatId, action, userActed, userActedOn, value }) {
@@ -283,7 +311,7 @@ function addServerMessage({ chatId, action, userActed, userActedOn, value }) {
     return null;
   }
   const newMessage = {
-    id: generateMessageId(),
+    id: generateMessageId(chat),
     type: "chat",
     action,
     userActed,
@@ -314,7 +342,7 @@ function addMessage(chatId, message, attachment, senderId) {
   if (!chat || !chat.participants.includes(senderId)) return null;
 
   const newMessage = {
-    id: generateMessageId(),
+    id: generateMessageId(chat),
     type: "user",
     message: message.slice(0, 250),
     senderId,
@@ -403,6 +431,7 @@ function registerUser(username, password) {
     username,
     password: hashPassword(password),
     creationTime: Date.now(),
+    private: false,
   };
   users.push(newUser);
   needsSaving = true;
@@ -422,15 +451,33 @@ function hashPassword(password) {
 }
 
 function generateUserId() {
-  return "user-" + Math.random().toString(36).substring(2, 8);
+  let userId = "user-" + Math.random().toString(36).substring(2, 8);
+  while (users.findIndex((user) => user.id === userId) >= 0) {
+    userId =  "user-" + Math.random().toString(36).substring(2, 8);
+  }
+  return userId
 }
 
-function generateMessageId() {
-  return "msg-" + Math.random().toString(36).substring(2, 8);
+function generateMessageId(chat) {
+  let messageId = "message-" + Math.random().toString(36).substring(2, 8);
+  while (chat.messages.findIndex((message) => message.id === messageId) >= 0) {
+      messageId =  "message-" + Math.random().toString(36).substring(2, 8);
+  }
+  return messageId
 }
 
 function setProfilePicture(file, mime, userId) {
   profilePictures[userId] = {
+    data: Buffer.from(file).toString(
+      "base64",
+    ),
+    mime: mime,
+  };
+  return true;
+}
+
+function setChatPicture(file, mime, chatId) {
+  chatPictures[chatId] = {
     data: Buffer.from(file).toString(
       "base64",
     ),
@@ -487,7 +534,7 @@ io.on("connection", (socket) => {
     const newUser = registerUser(username, password);
     if (newUser) {
       socket.user = newUser;
-      socket.emit("registered", newUser);
+      socket.emit("registered", { id: newUser.id, username: newUser.username, creationTime: newUser.creationTime, private: newUser.private });
 
       const userChats = getUserChats(newUser.id);
       socket.emit("chats_list", userChats);
@@ -501,7 +548,7 @@ io.on("connection", (socket) => {
     const user = authenticateUser(username, password);
     if (user) {
       socket.user = user;
-      socket.emit("authenticated", user);
+      socket.emit("authenticated", { id: user.id, username: user.username, creationTime: user.creationTime, private: user.private });
 
       const userChats = getUserChats(user.id);
       socket.emit("chats_list", userChats);
@@ -510,11 +557,33 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("set_private", (data, callback) => {
+    if (!socket.user) return;
+    if (data.private === undefined) return;
+    const { private } = data;
+    socket.user.private = private;
+    needsSaving = true;
+    callback(socket.user);
+  });
+
   socket.on("set_profile_picture", ({ file, mime }) => {
     if (!socket.user) return;
     if (!mime.startsWith("image/")) return;
     if (setProfilePicture(file, mime, socket.user.id)) {
       socket.emit("profile_set");
+      needsSaving = true;
+    }
+  });
+
+  socket.on("set_chat_picture", ({ file, mime, chatId }) => {
+    if (!socket.user) return;
+    if (!mime.startsWith("image/")) return;
+    const chat = chats.find((c) => c.id === chatId);
+    if (!chat || !chat.participants.includes(socket.user.id)) return;
+
+    if (setChatPicture(file, mime, chatId)) {
+      socket.emit("chat_picture_set");
+      needsSaving = true;
     }
   });
 
@@ -545,7 +614,7 @@ io.on("connection", (socket) => {
     if (!chat || !chat.participants.includes(socket.user.id)) return null;
 
     const newMessage = {
-      id: generateMessageId(),
+      id: generateMessageId(chat),
       type: "user",
       sticker: { data: data, fileName: fileName },
       senderId: socket.user.id,
@@ -604,8 +673,12 @@ io.on("connection", (socket) => {
   });
   socket.on("search_user", ({ query }, callback) => {
     if (!socket.user) return;
+    if (query.length < 4) return callback([]);
     const found = users
-      .filter((u) => u.username.toLowerCase().includes(query.toLowerCase()))
+      .filter((u) => {
+        return u.username.toLowerCase().includes(query.toLowerCase()) &&
+          !u.private;
+      })
       .slice(0, 250)
       .map((user) => {
         return {
@@ -695,7 +768,7 @@ io.on("connection", (socket) => {
       socket.emit("user_added", {
         chatId,
         chat,
-        user: result.user,
+        user: { id: result.user.id, username: result.user.username },
       });
       io.sockets.sockets.forEach((s) => {
         if (s.user && chat.participants.includes(s.user.id)) {
@@ -807,7 +880,7 @@ io.on("connection", (socket) => {
     const userToRemove = users.find((u) => u.id === userIdToRemove);
     if (!userToRemove) {
       return socket.emit("remove_user_failed", {
-        user: userToRemove,
+        user: { id: userToRemove.id, username: userToRemove.username },
         chatId,
       });
     }
@@ -830,13 +903,13 @@ io.on("connection", (socket) => {
         });
 
         socket.emit("user_removed", {
-          user: userToRemove,
+          user: { id: userToRemove.id, username: userToRemove.username },
           chatId,
         });
       }
     } else {
       socket.emit("remove_user_failed", {
-        user: userToRemove,
+        user: { id: userToRemove.id, username: userToRemove.username },
         chatId,
       });
     }
@@ -906,6 +979,7 @@ fetch(process.env["GASURL"])
     chats = data.chats || [];
     attachments = data.attachments || {};
     profilePictures = data.profilePictures || {};
+    chatPictures = data.chatPictures || {};
     console.log("Got data.");
 
     main();

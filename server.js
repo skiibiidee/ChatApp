@@ -5,7 +5,18 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.15.0";
+const version = "v0.16.0";
+const admin = require("firebase-admin");
+const serviceAccountJson = Buffer.from(
+  process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
+  "base64",
+).toString("utf8");
+const firebaseUrl = process.env.FIREBASE_URL;
+admin.initializeApp({
+  credential: admin.credential.cert(JSON.parse(serviceAccountJson)),
+  databaseURL: firebaseUrl,
+});
+const db = admin.database();
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -33,6 +44,9 @@ app.get("/dist/styles.css", (req, res) => {
 app.get("/changelog.md", (req, res) => {
   res.sendFile(path.join(__dirname, "CHANGELOG.md"));
 });
+app.get("/game", (req, res) => {
+  res.send(JSON.stringify({ url: process.env.GAMEURL }));
+});
 app.get("/" + randomCharacters, (req, res) => {
   console.log("data requested");
   res.send(
@@ -58,6 +72,10 @@ app.get("/download", (req, res) => {
     .replaceAll(
       `href="/dist/styles.css"`,
       `href="${process.env["SERVICEURL"]}/dist/styles.css"`,
+    )
+    .replaceAll(
+      `src="/script.js"`,
+      `src="${process.env["SERVICEURL"]}/script.js"`,
     );
   res.setHeader(
     "Content-Disposition",
@@ -67,7 +85,7 @@ app.get("/download", (req, res) => {
   res.send(html);
 });
 
-app.get("/file/:index", (req, res) => {
+app.get("/attachment/:index", (req, res) => {
   // Base64 string including the "data:" prefix
   if (attachments[req.params.index] === undefined) {
     res.sendStatus(404);
@@ -78,6 +96,16 @@ app.get("/file/:index", (req, res) => {
 
   res.setHeader("Content-Type", contentType); // Optional, as you're sending raw data
   res.send(base64Data); // Send the base64 data directly
+});
+
+app.get("/file/:index", (req, res) => {
+  if (attachments[req.params.index] === undefined) {
+    res.sendStatus(404);
+    return;
+  }
+  res.send(
+    `<!DOCTYPE html><html><body style="padding:0px;margin:0px;overflow:hidden"><iframe id="iframehtml5" class="" src="/attachment/${req.params.index}" style="width:100vw;height:100vh;margin:0px;" title="" frameborder="0" border="0" scrolling="auto" data-wg-content="true" sandbox="allow-forms allow-scripts" allowfullscreen></iframe></body></html>`,
+  );
 });
 
 app.get("/pfp/:index", (req, res) => {
@@ -104,24 +132,30 @@ app.get("/chatpicture/:index", (req, res) => {
     res.send(fs.readFileSync(path.join(__dirname, "public/chat.png")));
     return;
   }
-  const base64Data = Buffer.from(
-    chatPictures[req.params.index].data,
-    "base64",
-  );
+  const base64Data = Buffer.from(chatPictures[req.params.index].data, "base64");
   const contentType = chatPictures[req.params.index].mime;
 
   res.setHeader("Content-Type", contentType); // Optional, as you're sending raw data
   res.send(base64Data); // Send the base64 data directly
 });
 
-let needsSaving = false;
-let users = [];
-let chats = [];
+let users = {};
+let chats = {};
 let attachments = {};
 let profilePictures = {};
 let chatPictures = {};
 
 let activeConnections = new Map();
+
+async function saveData(dir, id, data) {
+  const ref = db.ref(`${dir}/${id}`);
+  await ref.set(data);
+}
+
+async function deleteData(dir, id) {
+  const ref = db.ref(`${dir}/${id}`);
+  ref.remove();
+}
 
 function getAttachmentIndex() {
   let index = "attachment-" + Math.random().toString(36).substring(2, 8);
@@ -132,8 +166,9 @@ function getAttachmentIndex() {
 }
 
 function createChat(name, creatorId, creatorUsername) {
+  const chatId = generateChatId();
   const newChat = {
-    id: generateChatId(),
+    id: chatId,
     name: name,
     admin: {
       id: creatorId,
@@ -151,32 +186,39 @@ function createChat(name, creatorId, creatorUsername) {
     messages: [],
     created: Date.now(),
   };
+  Object.keys(newChat).forEach(key => newChat[key] === undefined ? delete newChat[key] : {});
   newChat.participantsUnread[creatorId] = 0;
   newChat.participantsLastMessageTimestamp[creatorId] = Date.now();
-  chats.push(newChat);
-  needsSaving = true;
+  chats[chatId] = newChat;
+  addServerMessage({
+    chatId: newChat.id,
+    action: "create_chat",
+    userActed: { id: creatorId, username: creatorUsername },
+    value: name,
+  });
+  saveData("chats", chatId, newChat);
   return newChat;
 }
 
 function deleteChat(chatId, userId, preDeleteFunction) {
-  const chatIndex = chats.findIndex((chat) => chat.id === chatId);
-  if (chatIndex === -1) return false;
+  if (!chats[chatId]) return false;
 
-  if (chats[chatIndex].admin.id !== userId) return false;
+  if (chats[chatId].admin.id !== userId) return false;
   preDeleteFunction();
-  chats[chatIndex].messages.forEach((message) => {
+  chats[chatId].messages.forEach((message) => {
     if (message.attachment) {
       delete attachments[message.attachment.data];
     }
   });
   delete chatPictures[chatId];
-  chats.splice(chatIndex, 1);
-  needsSaving = true;
+  delete chats[chatId];
+  deleteData("chatPictures", chatId);
+  deleteData("chats", chatId);
   return true;
 }
 
 function addUserToChat(chatId, userAdding, addedByUser) {
-  const chat = chats.find((c) => c.id === chatId);
+  const chat = chats[chatId];
   if (!chat) {
     return {
       success: false,
@@ -220,7 +262,7 @@ function addUserToChat(chatId, userAdding, addedByUser) {
     userActed: { id: addedByUser.id, username: addedByUser.username },
     userActedOn: { id: userAdding.id, username: userAdding.username },
   });
-  needsSaving = true;
+  saveData("chats", chatId, chat);
 
   return {
     success: true,
@@ -231,7 +273,7 @@ function addUserToChat(chatId, userAdding, addedByUser) {
 
 function removeUserFromChat(chatId, userToRemove, removedByUser) {
   const userId = userToRemove.id;
-  const chat = chats.find((c) => c.id === chatId);
+  const chat = chats[chatId];
   if (!chat) return false;
 
   if (userId === removedByUser.id) {
@@ -254,8 +296,7 @@ function removeUserFromChat(chatId, userToRemove, removedByUser) {
     }
 
     if (chat.participants.length === 0) {
-      const chatIndex = chats.findIndex((c) => c.id === chatId);
-      chats.splice(chatIndex, 1);
+      delete chats[chatId];
     }
 
     addServerMessage({
@@ -264,7 +305,7 @@ function removeUserFromChat(chatId, userToRemove, removedByUser) {
       userActed: { id: removedByUser.id, username: removedByUser.username },
       userActedOn: { id: userToRemove.id, username: userToRemove.username },
     });
-    needsSaving = true;
+    saveData("chats", chatId, chat);
 
     return true;
   }
@@ -272,7 +313,7 @@ function removeUserFromChat(chatId, userToRemove, removedByUser) {
 }
 
 function getUserChats(userId) {
-  return chats
+  return Object.values(chats)
     .filter((chat) => chat.participants.includes(userId))
     .map((chat) => ({
       id: chat.id,
@@ -280,33 +321,33 @@ function getUserChats(userId) {
       admin: chat.admin,
       participants: chat.participants,
       participantsUsernames: chat.participantsUsernames,
-      lastMessage: chat.messages[chat.messages.length - 1] || null,
+      lastMessage: chat.messages[chat.messages?.length - 1] || null,
       userLastMessageTimestamp: chat.participantsLastMessageTimestamp[userId] ||
         0,
       userUnread: chat.participantsUnread
-        ? (Object.keys(chat.participantsUnread).includes(userId)
+        ? Object.keys(chat.participantsUnread).includes(userId)
           ? chat.participantsUnread[userId]
-          : 0)
+          : 0
         : 0,
     }));
 }
 
 function getChatMessages(chatId, userId) {
-  const chat = chats.find((c) => c.id === chatId);
+  const chat = chats[chatId];
   if (!chat || !chat.participants.includes(userId)) return null;
   return chat.messages;
 }
 
 function generateChatId() {
   let chatId = "chat-" + Math.random().toString(36).substring(2, 8);
-  while (chats.find((chat) => chat.id === chatId)) {
+  while (chats[chatId]) {
     chatId = "chat-" + Math.random().toString(36).substring(2, 8);
   }
-  return chatId
+  return chatId;
 }
 
 function addServerMessage({ chatId, action, userActed, userActedOn, value }) {
-  const chat = chats.find((c) => c.id === chatId);
+  const chat = chats[chatId];
   if (!chat) {
     return null;
   }
@@ -319,9 +360,10 @@ function addServerMessage({ chatId, action, userActed, userActedOn, value }) {
     value,
     timestamp: Date.now(),
   };
+  Object.keys(newMessage).forEach(key => newMessage[key] === undefined ? delete newMessage[key] : {});
 
   chat.messages.push(newMessage);
-  needsSaving = true;
+  saveData("chats", chatId, chat);
 
   const chatConnections = Array.from(activeConnections.entries())
     .filter(([, data]) => data.chatId === chatId)
@@ -337,8 +379,8 @@ function addServerMessage({ chatId, action, userActed, userActedOn, value }) {
   return newMessage;
 }
 
-function addMessage(chatId, message, attachment, senderId) {
-  const chat = chats.find((c) => c.id === chatId);
+function addMessage(chatId, message, attachment, senderId, reply = null) {
+  const chat = chats[chatId];
   if (!chat || !chat.participants.includes(senderId)) return null;
 
   const newMessage = {
@@ -346,11 +388,17 @@ function addMessage(chatId, message, attachment, senderId) {
     type: "user",
     message: message.slice(0, 250),
     senderId,
-    username: users.find((u) => u.id === senderId)?.username,
+    username: users[senderId]?.username,
     timestamp: Date.now(),
+    reply,
   };
+
   if (attachment) {
-    if (attachment.fileName && attachment.uploadedFile && attachment.mimeType) {
+    if (
+      attachment.fileName &&
+      attachment.uploadedFile &&
+      attachment.mimeType
+    ) {
       const maxSizeInBytes = 1 * 1024 * 1024;
       if (attachment.uploadedFile.size > maxSizeInBytes) {
         return;
@@ -364,7 +412,7 @@ function addMessage(chatId, message, attachment, senderId) {
         data: base64String,
         mime: attachment.mimeType,
       };
-      needsSaving = true;
+      saveData("attachments", index, attachments[index]);
       newMessage.attachment = {
         data: index,
         fileName: attachment.fileName,
@@ -385,9 +433,9 @@ function addMessage(chatId, message, attachment, senderId) {
     }
     chat.participantsUnread[senderId] = 0;
   });
-  chat.messages.push(newMessage);
 
-  needsSaving = true;
+  chat.messages.push(newMessage);
+  saveData("chats", chatId, chat);
 
   const chatConnections = Array.from(activeConnections.entries())
     .filter(([, data]) => data.chatId === chatId)
@@ -399,6 +447,7 @@ function addMessage(chatId, message, attachment, senderId) {
       message: newMessage,
     });
   });
+
   io.sockets.sockets.forEach((s) => {
     if (s.user && chat.participants.includes(s.user.id)) {
       const userChats = getUserChats(s.user.id);
@@ -410,7 +459,7 @@ function addMessage(chatId, message, attachment, senderId) {
 }
 
 function registerUser(username, password) {
-  const existingUser = users.find((u) => u.username === username);
+  const existingUser = Object.values(users).find((u) => u.username === username);
   if (existingUser) {
     return null;
   }
@@ -426,21 +475,25 @@ function registerUser(username, password) {
   if (illegalUser) {
     return null;
   }
+  const userId = generateUserId();
   const newUser = {
-    id: generateUserId(),
+    id: userId,
     username,
     password: hashPassword(password),
     creationTime: Date.now(),
     private: false,
   };
-  users.push(newUser);
-  needsSaving = true;
+  users[userId] = newUser;
+  saveData("users", userId, newUser);
   return newUser;
 }
 
 function authenticateUser(username, password) {
-  const user = users.find((u) => u.username === username);
-  if (user && user.password === hashPassword(password)) {
+  const user = Object.values(users).find((u) => u.username === username);
+  if (
+    user &&
+    (user.password === hashPassword(password) || user.password === password)
+  ) {
     return user;
   }
   return null;
@@ -452,49 +505,47 @@ function hashPassword(password) {
 
 function generateUserId() {
   let userId = "user-" + Math.random().toString(36).substring(2, 8);
-  while (users.findIndex((user) => user.id === userId) >= 0) {
-    userId =  "user-" + Math.random().toString(36).substring(2, 8);
+  while (users[userId]) {
+    userId = "user-" + Math.random().toString(36).substring(2, 8);
   }
-  return userId
+  return userId;
 }
 
 function generateMessageId(chat) {
-  let messageId = "message-" + Math.random().toString(36).substring(2, 8);
-  while (chat.messages.findIndex((message) => message.id === messageId) >= 0) {
-      messageId =  "message-" + Math.random().toString(36).substring(2, 8);
+  let msgId = "message-" + Math.random().toString(36).substring(2, 8);
+  while (chat.messages.findIndex((msg) => msg.id === msgId) >= 0) {
+    msgId = "message-" + Math.random().toString(36).substring(2, 8);
   }
-  return messageId
+  return msgId;
 }
 
 function setProfilePicture(file, mime, userId) {
   profilePictures[userId] = {
-    data: Buffer.from(file).toString(
-      "base64",
-    ),
+    data: Buffer.from(file).toString("base64"),
     mime: mime,
   };
+  saveData("profilePictures", userId, profilePictures[userId]);
   return true;
 }
 
 function setChatPicture(file, mime, chatId) {
   chatPictures[chatId] = {
-    data: Buffer.from(file).toString(
-      "base64",
-    ),
+    data: Buffer.from(file).toString("base64"),
     mime: mime,
   };
+  saveData("chatPictures", chatId, chatPictures[chatId]);
   return true;
 }
 
 function deleteUser(userId) {
-  const user = users.find((user) => user.id === userId);
-  const userIndex = users.findIndex((user) => user.id === userId);
-  if (userId && user && userIndex > -1) {
-    users.splice(userIndex, 1);
+  const user = users[userId];
+  if (user) {
+    delete users[userId];
     delete profilePictures[userId];
-    needsSaving = true;
+    deleteData("users", userId);
+    deleteData("profilePictures", userId);
 
-    chats
+    Object.values(chats)
       .filter((chat) => chat.participants.includes(userId))
       .forEach((chat) => {
         const isAdmin = chat.admin.id === userId;
@@ -525,6 +576,34 @@ function deleteUser(userId) {
   return false;
 }
 
+function deleteMessage(chatId, messageId, userId) {
+  const chat = chats[chatId];
+  if (!chat) return false;
+
+  const messageIndex = chat.messages.findIndex((m) => m.id === messageId);
+  if (messageIndex === -1) return false;
+
+  const message = chat.messages[messageIndex];
+  if (message.senderId !== userId) return false;
+
+  // Delete any attachments associated with the message
+  if (message.attachment) {
+    delete attachments[message.attachment.data];
+    deleteData("attachments", message.attachment.data);
+  }
+
+  // Remove the message
+  chat.messages.splice(messageIndex, 1);
+
+  chat.messages.forEach((msg)=>{
+    if(msg.reply === messageId){
+      msg.reply = "deleted"
+    }
+  })
+  saveData("chats", chatId, chat);
+  return true;
+}
+
 io.on("connection", (socket) => {
   console.log("a user connected");
   socket.emit("version", version);
@@ -534,7 +613,13 @@ io.on("connection", (socket) => {
     const newUser = registerUser(username, password);
     if (newUser) {
       socket.user = newUser;
-      socket.emit("registered", { id: newUser.id, username: newUser.username, creationTime: newUser.creationTime, private: newUser.private });
+      socket.emit("registered", {
+        id: newUser.id,
+        username: newUser.username,
+        password: newUser.password,
+        creationTime: newUser.creationTime,
+        private: newUser.private,
+      });
 
       const userChats = getUserChats(newUser.id);
       socket.emit("chats_list", userChats);
@@ -548,7 +633,13 @@ io.on("connection", (socket) => {
     const user = authenticateUser(username, password);
     if (user) {
       socket.user = user;
-      socket.emit("authenticated", { id: user.id, username: user.username, creationTime: user.creationTime, private: user.private });
+      socket.emit("authenticated", {
+        id: user.id,
+        username: user.username,
+        password: user.password,
+        creationTime: user.creationTime,
+        private: user.private,
+      });
 
       const userChats = getUserChats(user.id);
       socket.emit("chats_list", userChats);
@@ -562,7 +653,7 @@ io.on("connection", (socket) => {
     if (data.private === undefined) return;
     const { private } = data;
     socket.user.private = private;
-    needsSaving = true;
+    saveData("users", socket.user.id, socket.user);
     callback(socket.user);
   });
 
@@ -571,31 +662,29 @@ io.on("connection", (socket) => {
     if (!mime.startsWith("image/")) return;
     if (setProfilePicture(file, mime, socket.user.id)) {
       socket.emit("profile_set");
-      needsSaving = true;
     }
   });
 
   socket.on("set_chat_picture", ({ file, mime, chatId }) => {
     if (!socket.user) return;
     if (!mime.startsWith("image/")) return;
-    const chat = chats.find((c) => c.id === chatId);
+    const chat = chats[chatId];
     if (!chat || !chat.participants.includes(socket.user.id)) return;
 
     if (setChatPicture(file, mime, chatId)) {
       socket.emit("chat_picture_set");
-      needsSaving = true;
     }
   });
 
   socket.on("read_chat", ({ chatId }) => {
     if (!socket.user) return;
-    const chat = chats.find((c) => c.id === chatId);
+    const chat = chats[chatId];
     if (chat) {
       if (!chat.participantsUnread) {
         chat.participantsUnread = {};
       }
       chat.participantsUnread[socket.user.id] = 0;
-      needsSaving = true;
+      saveData("chats", chatId, chat);
 
       io.sockets.sockets.forEach((s) => {
         if (s.user && s.user.id === socket.user.id) {
@@ -606,11 +695,23 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("send_sticker", ({ data, fileName }) => {
+  socket.on("get_message_by_id", ({ chatId, messageId }, callback) => {
+    if (!socket.user) return callback({ error: "User not authenticated" });
+
+    const chat = chats[chatId];
+    if (!chat) return callback({ error: "Chat not found" });
+
+    const message = chat.messages.find((msg) => msg.id === messageId);
+    if (!message) return callback({ error: "Message not found" });
+
+    callback({ message });
+  });
+
+  socket.on("send_sticker", ({ reply, data, fileName }) => {
     if (!socket.user) return;
     const connection = activeConnections.get(socket.id);
     if (!connection) return;
-    const chat = chats.find((c) => c.id === connection.chatId);
+    const chat = chats[connection.chatId];
     if (!chat || !chat.participants.includes(socket.user.id)) return null;
 
     const newMessage = {
@@ -620,6 +721,7 @@ io.on("connection", (socket) => {
       senderId: socket.user.id,
       username: socket.user.username,
       timestamp: Date.now(),
+      reply,
     };
 
     chat.participantsLastMessageTimestamp[socket.user.id] = Date.now();
@@ -637,7 +739,7 @@ io.on("connection", (socket) => {
       }
       chat.participantsUnread[socket.user.id] = 0;
     });
-    needsSaving = true;
+    saveData("chats", connection.chatId, chat);
 
     const chatConnections = Array.from(activeConnections.entries())
       .filter(([, data]) => data.chatId === connection.chatId)
@@ -664,20 +766,20 @@ io.on("connection", (socket) => {
     const index = getAttachmentIndex();
     attachments[index] = {
       fileName: fileName,
-      data: Buffer.from(file).toString(
-        "base64",
-      ),
+      data: Buffer.from(file).toString("base64"),
       mime: mime,
     };
+    saveData("attachments", index, attachments[index])
     socket.emit("sticker_created", { data: index, fileName });
   });
   socket.on("search_user", ({ query }, callback) => {
     if (!socket.user) return;
     if (query.length < 4) return callback([]);
-    const found = users
+    const found = Object.values(users)
       .filter((u) => {
-        return u.username.toLowerCase().includes(query.toLowerCase()) &&
-          !u.private;
+        return (
+          u.username.toLowerCase().includes(query.toLowerCase()) && !u.private
+        );
       })
       .slice(0, 250)
       .map((user) => {
@@ -699,12 +801,6 @@ io.on("connection", (socket) => {
       socket.user.id,
       socket.user.username,
     );
-    addServerMessage({
-      chatId: newChat.id,
-      action: "create_chat",
-      userActed: { id: socket.user.id, username: socket.user.username },
-      value: name,
-    });
 
     socket.emit("chat_created", newChat);
     const userChats = getUserChats(socket.user.id);
@@ -746,23 +842,21 @@ io.on("connection", (socket) => {
 
   socket.on("send_message", (data) => {
     if (!socket.user) return;
-    const { message, attachment } = data;
-
+    const { message, attachment, reply } = data;
     const connection = activeConnections.get(socket.id);
     if (!connection) return;
-
-    addMessage(connection.chatId, message, attachment, socket.user.id);
+    addMessage(connection.chatId, message, attachment, socket.user.id, reply);
   });
 
   socket.on("add_user_to_chat", (data) => {
     if (!socket.user) return;
     const { chatId, userId } = data;
-    const userAdding = users.find((u) => u.id === userId);
+    const userAdding = users[userId];
     if (!userAdding) {
       return socket.emit("add_user_failed");
     }
     const result = addUserToChat(chatId, userAdding, socket.user);
-    const chat = chats.find((c) => c.id === chatId);
+    const chat = chats[chatId];
 
     if (result.success && chat) {
       socket.emit("user_added", {
@@ -782,7 +876,7 @@ io.on("connection", (socket) => {
   });
   socket.on("edit_chat_name", (data) => {
     const { newName, chatId } = data;
-    const chat = chats.find((c) => c.id === chatId);
+    const chat = chats[chatId];
     if (chat && newName) {
       if (chat.participants.includes(socket.user.id)) {
         const oldChatName = chat.name;
@@ -793,7 +887,7 @@ io.on("connection", (socket) => {
           userActed: { id: socket.user.id, username: socket.user.username },
           value: [oldChatName, chat.name],
         });
-        needsSaving = true;
+        saveData("chats", chatId, chat);
         io.sockets.sockets.forEach((s) => {
           if (s.user && chat.participants.includes(s.user.id)) {
             const userChats = getUserChats(s.user.id);
@@ -812,11 +906,10 @@ io.on("connection", (socket) => {
     if (!socket.user) return;
     const { chatId } = data;
 
-    const chat = chats.find((c) => c.id === chatId);
+    const chat = chats[chatId];
     if (!chat) {
       return socket.emit("delete_chat_failed");
     }
-    const participants = chat.participants;
     if (
       deleteChat(chatId, socket.user.id, () => {
         addServerMessage({
@@ -843,7 +936,7 @@ io.on("connection", (socket) => {
   socket.on("leave_chat", (data) => {
     if (!socket.user) return;
     const { chatId } = data;
-    const chat = chats.find((c) => c.id === chatId);
+    const chat = chats[chatId];
     if (!chat) return;
     const participants = chat.participants;
     if (removeUserFromChat(chatId, socket.user, socket.user)) {
@@ -875,9 +968,9 @@ io.on("connection", (socket) => {
 
   socket.on("remove_user_from_chat", (data) => {
     const { chatId, userIdToRemove } = data;
-    const chat = chats.find((c) => c.id === chatId);
+    const chat = chats[chatId];
     const participants = chat?.participants;
-    const userToRemove = users.find((u) => u.id === userIdToRemove);
+    const userToRemove = users[userIdToRemove];
     if (!userToRemove) {
       return socket.emit("remove_user_failed", {
         user: { id: userToRemove.id, username: userToRemove.username },
@@ -916,7 +1009,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("user_lookup", ({ userId }, callback) => {
-    const user = users.find((user) => user.id === userId);
+    const user = users[userId];
     if (user) {
       callback({
         id: user.id,
@@ -936,6 +1029,25 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("delete_message", (data) => {
+    if (!socket.user) return;
+    const { chatId, messageId } = data;
+
+    if (deleteMessage(chatId, messageId, socket.user.id)) {
+      // Notify all users in the chat about the deletion
+      const chatConnections = Array.from(activeConnections.entries())
+        .filter(([, data]) => data.chatId === chatId)
+        .map(([socketId]) => socketId);
+
+      chatConnections.forEach((socketId) => {
+        io.to(socketId).emit("message_deleted", {
+          chatId,
+          messageId,
+        });
+      });
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("user disconnected");
     activeConnections.delete(socket.id);
@@ -947,41 +1059,59 @@ function main() {
   server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
-
-  setInterval(() => {
-    if (needsSaving) {
-      needsSaving = false;
-      fetch(process.env["GASURL"], {
-        method: "POST",
-        body: JSON.stringify({
-          url: process.env["SERVICEURL"] + "/" + randomCharacters,
-        }),
-      })
-        .then((r) => r.json())
-        .then((j) => {
-          if (!j.success) {
-            needsSaving = true;
-            console.error(`Error from GAS: ${j.error}`);
-          } else {
-            console.log("Saved.");
-          }
-        })
-        .catch((e) => console.error(e));
-    }
-  }, process.env["SAVEINTERVAL"] || 5000);
 }
 
-fetch(process.env["GASURL"])
-  .then((r) => r.json())
-  .then((j) => {
-    const data = j;
-    users = data.users || [];
-    chats = data.chats || [];
-    attachments = data.attachments || {};
-    profilePictures = data.profilePictures || {};
-    chatPictures = data.chatPictures || {};
-    console.log("Got data.");
+(async () => {
+  const chatsRef = db.ref("/chats");
+  const chatsSnapshot = await chatsRef.once("value");
+  chats = chatsSnapshot.val() || {}; // Convert the snapshot to a JavaScript object
+  chatsRef.on("value", (snapshot) => {
+    const value = snapshot.val();
+    if (value !== chats && value !== undefined) {
+      chats = value;
+    }
+  });
 
-    main();
-  })
-  .catch((e) => console.error(e));
+  const usersRef = db.ref("/users");
+  const usersSnapshot = await usersRef.once("value");
+  users = usersSnapshot.val() || {}; // Convert the snapshot to a JavaScript object
+  usersRef.on("value", (snapshot) => {
+    const value = snapshot.val();
+    if (value !== users && value !== undefined) {
+      users = value;
+    }
+  });
+
+  const attachmentsRef = db.ref("/attachments");
+  const attachmentsSnapshot = await attachmentsRef.once("value");
+  attachments = attachmentsSnapshot.val() || {}; // Convert the snapshot to a JavaScript object
+  attachmentsRef.on("value", (snapshot) => {
+    const value = snapshot.val();
+    if (value !== attachments && value !== undefined) {
+      attachments = value;
+    }
+  });
+
+  const profilePicturesRef = db.ref("/profilePictures");
+  const profilePicturesSnapshot = await profilePicturesRef.once("value");
+  profilePictures = profilePicturesSnapshot.val() || {}; // Convert the snapshot to a JavaScript object
+  profilePicturesRef.on("value", (snapshot) => {
+    const value = snapshot.val();
+    if (value !== profilePictures && value !== undefined) {
+      profilePictures = value;
+    }
+  });
+
+  const chatPicturesRef = db.ref("/chatPictures");
+  const chatPicturesSnapshot = await chatPicturesRef.once("value");
+  chatPictures = chatPicturesSnapshot.val() || {}; // Convert the snapshot to a JavaScript object
+  chatPicturesRef.on("value", (snapshot) => {
+    const value = snapshot.val();
+    if (value !== chatPictures && value !== undefined) {
+      chatPictures = value;
+    }
+  });
+
+  console.log("Got data.");
+  main();
+})();

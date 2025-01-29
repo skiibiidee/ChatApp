@@ -1,3 +1,33 @@
+## v0.16.0
+
+### Added Firebase integration
+
+- Migrated data storage to Firebase Realtime Database
+- Real-time synchronization of chats, users, and attachments
+- Improved data persistence and reliability
+- Enhanced scalability for growing user base
+- Secure authentication and data access controls
+
+### Improved file handling
+
+- Optimized attachment storage and retrieval updating across instances of server
+
+### Message Context Menu
+
+- Added context menu for messages allowing users to reply and delete messages
+
+### Infrastructure updates
+
+- Added environment firebase configuration support
+
+### UI Improvements
+
+- Fixed flickering of messages
+
+### Game
+
+- Added iframe game
+
 ## v0.15.0
 
 ### Added chat pictures

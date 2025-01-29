@@ -91,7 +91,7 @@
           display: flex;
         }
         #send-btn {
-          display:  none; 
+          display: none;
         }
       }
 
@@ -306,6 +306,43 @@
               class="px-2 py-1 absolute left-0 w-auto transition-delay-500 bg-color-700 rounded-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-300 delay-1000 z-10"
             >
               <p class="text-textcolor-700 text-sm">Home</p>
+            </div>
+          </div>
+          <div class="relative group inline-block">
+            <button
+              id="open-game-btn"
+              class="flex m-2 text-base transition-all ease-in-out duration-150 rounded-lg border-2 border-color-400 hover:border-opacity-50 border-opacity-0 text-center text-textcolor-700 font-semibold items-center justify-center align-middle content-center"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M6 11h4a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1z"
+                />
+                <path
+                  d="M14 11h4a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1z"
+                />
+                <path
+                  d="M6 19h4a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1z"
+                />
+                <path
+                  d="M14 19h4a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1z"
+                />
+              </svg>
+            </button>
+
+            <!-- Popover -->
+            <div
+              class="px-2 py-1 absolute right-0 w-auto transition-delay-500 bg-color-700 rounded-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-300 delay-1000 z-10"
+            >
+              <p class="text-textcolor-700 text-sm">Game</p>
             </div>
           </div>
           <div class="relative group inline-block">
@@ -585,7 +622,10 @@
                 Changelog
               </button>
               <p class="text-sm text-textcolor-400 mt-6">
-                For questions or suggestions, email <a href="mailto:skiibiidee@gmail.com" class="text-textcolor-500 hover:underline">skiibiidee@gmail.com</a>.
+                For questions or suggestions, email <a
+                  href="mailto:skiibiidee@gmail.com"
+                  class="text-textcolor-500 hover:underline"
+                >skiibiidee@gmail.com</a>.
               </p>
             </div>
           </div>
@@ -604,14 +644,50 @@
           </button>
         </div>
 
-        <div id="form-div" class="bg-color-800 border-t border-color-700 p-2">
+        <div
+          id="form-div"
+          class="bg-color-800 border-t border-color-700 p-2 overflow-hidden"
+        >
+          <div id="reply-display" class="pb-2">
+            <div
+              id="reply-display-content"
+              class="flex justify-between p-2 bg-color-700 rounded-md overflow-visible"
+            >
+              <div class="flex items-center overflow-hidden w-full">
+                <span
+                  id="reply-display-sender"
+                  class="text-sm text-textcolor-600 mr-5"
+                ></span>
+                <span id="reply-display-message" class="font-semibold"></span>
+              </div>
+              <button
+                onclick="replyingTo = null; displayReplyDisplay()"
+                class="text-textcolor-400 hover:text-red-500 transition ml-3"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  class="w-5 h-5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
           <div
             id="filename-display"
-            class="flex items-center justify-between hidden mb-2 px-3 pb-2 border-b border-color-700"
+            class="flex items-center justify-between hidden mb-2 px-3 pb-2 border-b border-color-700 overflow-hidden"
           >
             <h1
               id="filename-display-name"
-              class="text-textcolor-900 text-lg font-semibold"
+              class="text-textcolor-900 text-lg font-semibold truncate"
             >
             </h1>
             <button
@@ -1314,7 +1390,45 @@
         <iframe
           id="html-preview-iframe"
           class="w-full h-full border-0 overflow-scroll"
-          sandbox="allow-same-origin allow-forms allow-scripts"
+          sandbox="allow-forms allow-scripts"
+        ></iframe>
+      </div>
+    </div>
+    <div
+      id="game-screen"
+      class="fixed inset-0 bg-black-800 bg-opacity-50 flex justify-center items-center hidden h-max-screen"
+    >
+      <div
+        class="border-2 border-color-700 w-full h-full rounded-lg shadow-lg overflow-scroll"
+      >
+        <div
+          class="flex justify-between items-center p-4 bg-color-700 rounded-t-lg"
+        >
+          <div
+            class="flex justify-between items-center p-4 bg-color-700 rounded-t-lg"
+          >
+            <button
+              onclick="document.getElementById('game-screen').classList.add('hidden');"
+              class="btn btn-red h-8 w-8 flex items-center justify-center"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="h-5 w-5 text-textcolor-900"
+              >
+                <path d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <iframe
+          id="game-iframe"
+          class="w-full h-full border-0 overflow-scroll"
         ></iframe>
       </div>
     </div>
@@ -1453,16 +1567,61 @@
       </div>
     </div>
     <div
+      id="message-info-modal"
+      class="hidden fixed inset-0 transition-all ease-in-out duration-200 backdrop-blur-sm bg-black-800 bg-opacity-50 flex justify-center items-center"
+    >
+      <div
+        class="bg-color-900 text-textcolor-200 p-6 rounded-lg shadow-lg modal-content max-w-md w-full"
+      >
+        <button
+          id="close-message-info-btn"
+          class="absolute top-2 right-2 text-textcolor-300 hover:text-red-600 transition"
+        >
+          &times; <!-- Close button -->
+        </button>
+        <div class="mb-2">
+          <label for="message-info-id" class="text-sm font-medium">Message ID:</label>
+          <span id="message-info-id" class="font-bold text-lg break-words"></span>
+        </div>
+        <div class="mb-1">
+          <label for="message-info-sender" class="text-sm font-medium">Sender:</label>
+          <span id="message-info-sender" class="text-sm break-words"></span>
+        </div>
+        <div class="mb-1">
+          <label for="message-info-timestamp" class="text-sm font-medium">Timestamp:</label>
+          <span id="message-info-timestamp" class="text-sm break-words"></span>
+        </div>
+        <div class="mb-1">
+          <label for="message-info-content" class="text-sm font-medium">Content:</label>
+          <span id="message-info-content" class="text-sm break-words"></span>
+        </div>
+        <div class="mb-1">
+          <label for="message-info-sticker" class="text-sm font-medium">Sticker:</label>
+          <span id="message-info-sticker" class="text-sm break-words hidden"></span>
+        </div>
+        <div class="mb-1">
+          <label for="message-info-attachment" class="text-sm font-medium">Attachment:</label>
+          <span id="message-info-attachment" class="text-sm break-words hidden"></span>
+        </div>
+        <div class="mb-1">
+          <label for="message-info-reply" class="text-sm font-medium">Reply:</label>
+          <span id="message-info-reply" class="text-sm break-words hidden"></span>
+        </div>
+      </div>
+    </div>
+    <div
       id="toast-container"
       class="fixed left-[50%]"
       style="transform: translateX(-50%); z-index: 9998"
     >
     </div>
+
     <script>
       // Skibidi Chat Script =>
       const socket = io();
       const rootUrl = "";
-      const version = "v0.15.0";
+      const version = "v0.16.0";
+      const wasLoggedIn = false;
       // Objects
       const settingsInfo = {
         loading_time: {
@@ -1760,20 +1919,21 @@
       let uploadedFile = null;
       let uploadedFileMimeType = null;
       let fileName = null;
+      let replyingTo = null;
       // Maps
       let userColors = new Map();
       // Arrays
       const userColorsList = [
-        "background: linear-gradient(to right, #E53E3E, #f76b25); -webkit-background-clip: text; -webkit-text-fill-color: transparent;",
-        "background: linear-gradient(to right, #38A169, #2F855A); -webkit-background-clip: text; -webkit-text-fill-color: transparent;",
-        "background: linear-gradient(to right, #805AD5, #6B46C1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;",
-        "background: linear-gradient(to right, #D69E2E, #B7791F); -webkit-background-clip: text; -webkit-text-fill-color: transparent;",
-        "background: linear-gradient(to right, #3182CE, #2B6CB0); -webkit-background-clip: text; -webkit-text-fill-color: transparent;",
-        "background: linear-gradient(to right, #DD6B20, #C05621); -webkit-background-clip: text; -webkit-text-fill-color: transparent;",
-        "background: linear-gradient(to right, #319795, #2C7A7B); -webkit-background-clip: text; -webkit-text-fill-color: transparent;",
-        "background: linear-gradient(to right, #B83280, #97266D); -webkit-background-clip: text; -webkit-text-fill-color: transparent;",
-        "background: linear-gradient(to right, #5A67D8, #4C51BF); -webkit-background-clip: text; -webkit-text-fill-color: transparent;",
-        "background: linear-gradient(to right, #718096, #4A5568); -webkit-background-clip: text; -webkit-text-fill-color: transparent;",
+        "background: linear-gradient(to right, #E53E3E, #f76b25);",
+        "background: linear-gradient(to right, #38A169, #2F855A);",
+        "background: linear-gradient(to right, #805AD5, #6B46C1);",
+        "background: linear-gradient(to right, #D69E2E, #B7791F);",
+        "background: linear-gradient(to right, #3182CE, #2B6CB0);",
+        "background: linear-gradient(to right, #DD6B20, #C05621);",
+        "background: linear-gradient(to right, #319795, #2C7A7B);",
+        "background: linear-gradient(to right, #B83280, #97266D);",
+        "background: linear-gradient(to right, #5A67D8, #4C51BF);",
+        "background: linear-gradient(to right, #718096, #4A5568);",
       ];
 
       let userChats = [];
@@ -2168,7 +2328,7 @@
       function setStickerInfoContent(sticker) {
         document.getElementById("sticker-info-name").textContent = sticker.fileName;
         document.getElementById("sticker-info-img").src =
-          `${rootUrl}/file/${sticker.data}`;
+          `${rootUrl}/attachment/${sticker.data}`;
         document.getElementById("sticker-info-save-btn").textContent =
           Object.keys(stickers).includes(sticker.data)
             ? "Unsave Sticker"
@@ -2243,7 +2403,8 @@
           msgsSinceLastShow = 0;
         }
         const msgOuter = document.createElement("div");
-        msgOuter.classList.add("w-100", "flex");
+        msgOuter.setAttribute("data-message-id", message.id);
+        msgOuter.classList.add("w-100", "flex", "group", "outer-msg", `bg-${settings.secondary_color}-600`, "bg-opacity-0", "transition-all", "duration-1000", "ease-in-out");
 
         const messageElement = document.createElement("div");
         messageElement.classList.add(
@@ -2258,13 +2419,13 @@
           "justify-center",
           "relative", // To position the triangle relative to the message bubble
         );
+
         if (isSent) {
           messageElement.classList.add(
             "sent",
             "right-0",
             `bg-${settings.secondary_color}-600`,
             `text-${settings.text_color}-900`,
-            "ml-auto",
           );
           msgOuter.classList.add("justify-end");
           messageElement.style = "border-top-right-radius: 0%;";
@@ -2299,7 +2460,9 @@
               `text-${settings.text_color}-900 text-base font-bold cursor-pointer`;
           } else {
             usernameSpan.className = `text-base font-bold cursor-pointer`;
-            usernameSpan.style = `${getColorForUser(message.username)}`;
+            usernameSpan.style = `${
+              getColorForUser(message.username)
+            }; -webkit-background-clip: text; -webkit-text-fill-color: transparent;`;
           }
           usernameSpan.textContent = isSent ? "You" : message.username;
           usernameSpan.addEventListener("click", () => {
@@ -2314,6 +2477,56 @@
           div.appendChild(usernameSpan);
           div.appendChild(timestampSpan);
           messageElement.appendChild(div);
+        }
+
+        if (message.reply) {
+          const replyDisplay = document.createElement("div");
+          replyDisplay.addEventListener("click", () => {
+            const msg = Array.from(document.querySelectorAll(".outer-msg")).find((
+              m,
+            ) => m.getAttribute("data-message-id") === message.reply);
+            if (msg) {
+              msg.scrollIntoView({ behavior: "smooth", block: "start" });
+              msg.classList.add("bg-opacity-50")
+              msg.classList.remove("bg-opacity-0")
+              setTimeout(()=>{
+                msg.classList.add("bg-opacity-0")
+                msg.classList.remove("bg-opacity-50")
+              },1000)
+            }
+          });
+          replyDisplay.className =
+            `reply-display h-10 cursor-pointer p-2 bg-${settings.primary_color}-800 rounded-md mb-2 flex items-center truncate text-ellipsis`;
+
+          // Create a colored line on the left
+          const coloredLine = document.createElement("div");
+          coloredLine.className = `h-full w-[0.125rem] rounded-l-md flex-shrink-0`;
+          replyDisplay.appendChild(coloredLine);
+          const replySenderDiv = document.createElement("div")
+          replySenderDiv.className = "overflow-hidden flex"
+          const replySenderSpan = document.createElement("span");
+          replySenderSpan.className = `text-sm ml-2 text-${settings.text_color}-400`; // Add margin to the left
+
+          replySenderDiv.appendChild(replySenderSpan)
+          replyDisplay.appendChild(replySenderDiv);
+          messageElement.appendChild(replyDisplay);
+
+          socket.emit("get_message_by_id", {
+            chatId: currentChat.id,
+            messageId: message.reply,
+          }, (response) => {
+            if (response.error) replySenderSpan.textContent = `Deleted`;
+            else {
+              replySenderSpan.textContent = `${response.message.username}: ${
+                response.message.message
+                  ? response.message.message
+                  : (response.message.attachment
+                    ? "attachment"
+                    : (response.message.sticker ? "sticker" : "Message"))
+              }`;
+              coloredLine.style = `${getColorForUser(response.message.username)}`;
+            }
+          });
         }
 
         if (message.attachment !== undefined) {
@@ -2377,7 +2590,7 @@
               `flex-grow align-middle border-l-2 border-${settings.primary_color}-500 p-2`;
             downloadFileBtn.onclick = () =>
               download(
-                `${rootUrl}/file/${message.attachment.data}`,
+                `${rootUrl}/attachment/${message.attachment.data}`,
                 message.attachment.fileName,
               );
 
@@ -2418,8 +2631,8 @@
             detailsDisplay.appendChild(imageNameDisplay);
             detailsDisplay.appendChild(downloadFileDiv);
 
-            image.className = "h-48 w-auto max-w-full object-contain";
-            image.src = `${rootUrl}/file/${message.attachment.data}`;
+            image.className = "h-48 mx-auto w-auto max-w-full object-contain";
+            image.src = `${rootUrl}/attachment/${message.attachment.data}`;
             image.alt = message.attachment.fileName;
             //image.onclick = () => openImage(image.parentNode);
             imageDisplay.appendChild(detailsDisplay);
@@ -2453,7 +2666,7 @@
               `flex mb-1 w-full justify-between overflow-auto text-wrap break-all items-center p-2 bg-${settings.primary_color}-800 border border-${settings.primary_color}-600 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-700 rounded-lg shadow-md transition-all`;
             attachmentButton.onclick = () =>
               openPreview(
-                `${rootUrl}/file/${message.attachment.data}`,
+                message.attachment.data,
                 message.attachment.fileName,
               );
 
@@ -2502,7 +2715,7 @@
               `flex w-full justify-between overflow-auto text-wrap break-all items-center p-2 bg-${settings.primary_color}-800 border border-${settings.primary_color}-600 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-700 rounded-lg shadow-md transition-all`;
             attachmentButton.onclick = () =>
               download(
-                `${rootUrl}/file/${message.attachment.data}`,
+                `${rootUrl}/attachment/${message.attachment.data}`,
                 message.attachment.fileName,
               );
 
@@ -2542,7 +2755,7 @@
           const image = document.createElement("img");
 
           image.className = "h-48 w-auto object-contain";
-          image.src = `${rootUrl}/file/${message.sticker.data}`;
+          image.src = `${rootUrl}/attachment/${message.sticker.data}`;
           image.alt = message.sticker.fileName;
           msgDiv.classList.add("object-contain");
           msgDiv.appendChild(image);
@@ -2552,6 +2765,129 @@
         }
 
         messageElement.appendChild(msgDiv);
+        const controlsContainer = document.createElement("div");
+
+        controlsContainer.className = `flex ${
+          isSent ? "mr-2" : "ml-2"
+        } items-center group-hover:opacity-100 opacity-0`; // small margin to separate from the message bubble
+
+        // Create the vertical ellipsis button.
+        const moreBtn = document.createElement("button");
+        moreBtn.className = "cursor-pointer";
+        moreBtn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-${settings.text_color}-500" fill="currentColor" viewBox="0 0 24 24">
+      <circle cx="12" cy="5" r="2"/>
+      <circle cx="12" cy="12" r="2"/>
+      <circle cx="12" cy="19" r="2"/>
+    </svg>
+  `;
+        controlsContainer.appendChild(moreBtn);
+        msgOuter.appendChild(controlsContainer);
+
+        // When the more button is clicked, show a context menu.
+        moreBtn.addEventListener("click", (e) => {
+          e.stopPropagation(); // Prevent the click from bubbling up.
+
+          // Remove any existing context menu.
+          const existingMenu = document.querySelector(".context-menu");
+          if (existingMenu) {
+            if (
+              existingMenu.getAttribute("data-message-id") ===
+                moreBtn.parentNode.parentNode.getAttribute("data-message-id")
+            ) {
+              existingMenu.remove();
+              return;
+            }
+            existingMenu.remove();
+          }
+
+          // Create the context menu.
+          const contextMenu = document.createElement("div");
+          contextMenu.setAttribute("data-message-id", message.id);
+          contextMenu.className =
+            `context-menu absolute bg-${settings.primary_color}-800 text-${settings.text_color}-700 rounded-lg shadow-md z-50`;
+
+          // Position the menu below the more button.
+          const btnRect = moreBtn.getBoundingClientRect();
+          if (btnRect.top > window.innerHeight / 2) {
+            // Position upward: set bottom relative to viewport
+            // We add window.scrollY to account for page scroll.
+            contextMenu.style.bottom = window.innerHeight - btnRect.top +
+              window.scrollY + "px";
+            contextMenu.style.left = btnRect.left + window.scrollX + "px";
+            contextMenu.style.top = "auto";
+          } else {
+            // Position downward: set top relative to viewport
+            contextMenu.style.top = btnRect.bottom + window.scrollY + "px";
+            contextMenu.style.left = btnRect.left + window.scrollX + "px";
+            contextMenu.style.bottom = "auto";
+          }
+
+          // Add menu options.
+          // For messages sent by the current user, include the "Delete" option.
+          if (message.senderId === currentUser.id) {
+            const deleteOption = document.createElement("div");
+            deleteOption.textContent = "Delete Message";
+            deleteOption.className =
+              "px-4 py-2 hover:bg-opacity-75 bg-opacity-100 cursor-pointer text-sm";
+            deleteOption.onclick = async (evt) => {
+              evt.stopPropagation();
+              if (
+                await createConfirmModal(
+                  "Are you sure you want to delete this message?",
+                )
+              ) {
+                socket.emit("delete_message", {
+                  chatId: currentChat.id,
+                  messageId: message.id,
+                });
+              }
+              contextMenu.remove();
+            };
+            contextMenu.appendChild(deleteOption);
+          }
+
+          // Add the Reply option.
+          const replyOption = document.createElement("div");
+          replyOption.textContent = "Reply";
+          replyOption.className =
+            "px-4 py-2 hover:bg-opacity-75 bg-opacity-100 cursor-pointer text-sm";
+          replyOption.onclick = function (evt) {
+            evt.stopPropagation();
+            replyingTo = message; // Set the global reply variable to this message.
+            displayReplyDisplay();
+            contextMenu.remove();
+            if(settings.message_box_focus){
+              document.getElementById("message-input").focus();
+            }
+          };
+          contextMenu.appendChild(replyOption);
+
+          // Add the Info option, which calls openMessageInfoModal.
+          const infoOption = document.createElement("div");
+          infoOption.textContent = "Info";
+          infoOption.className =
+            "px-4 py-2 hover:bg-opacity-75 bg-opacity-100 cursor-pointer text-sm";
+          infoOption.onclick = function (evt) {
+            evt.stopPropagation();
+            openMessageInfoModal(message);
+            contextMenu.remove();
+          };
+          contextMenu.appendChild(infoOption);
+
+          document.body.appendChild(contextMenu);
+
+          // Close the menu when clicking outside.
+          const closeContextMenu = function (event) {
+            if (!contextMenu.contains(event.target)) {
+              contextMenu.remove();
+              document.removeEventListener("click", closeContextMenu);
+            }
+          };
+          document.addEventListener("click", closeContextMenu);
+        });
+
+        const shouldAddPfpFirst = !isSent;
 
         if (showUsername) {
           const pfp = document.createElement("img");
@@ -2564,19 +2900,28 @@
               currentChat,
             );
           });
-          const shouldAddPfpFirst = !isSent;
 
           if (shouldAddPfpFirst) {
             msgOuter.appendChild(pfp);
 
             msgOuter.appendChild(messageElement);
+            msgOuter.appendChild(controlsContainer);
           } else {
+            msgOuter.appendChild(controlsContainer);
+
             msgOuter.appendChild(messageElement);
 
             msgOuter.appendChild(pfp);
           }
         } else {
-          msgOuter.appendChild(messageElement);
+          if (shouldAddPfpFirst) {
+            msgOuter.appendChild(messageElement);
+            msgOuter.appendChild(controlsContainer);
+          } else {
+            msgOuter.appendChild(controlsContainer);
+
+            msgOuter.appendChild(messageElement);
+          }
         }
 
         messageContainer.appendChild(msgOuter);
@@ -2695,7 +3040,7 @@
           .catch(console.error);
       }
 
-      function openPreview(link, filename) {
+      function openPreview(id, filename) {
         const previewContainer = document.getElementById("html-preview");
         const previewIframe = document.getElementById("html-preview-iframe");
         const previewDownload = document.getElementById(
@@ -2704,12 +3049,12 @@
         const previewOpen = document.getElementById("html-preview-open");
         const previewName = document.getElementById("html-preview-name");
 
-        previewIframe.src = link;
+        previewIframe.src = `${rootUrl}/file/${id}`;
         previewDownload.onclick = () => {
-          download(link, filename);
+          download(`${rootUrl}/attachment/${id}`, filename);
         };
         previewOpen.onclick = () => {
-          openPage(link);
+          openPage(`${rootUrl}/file/${id}`);
         };
         previewName.textContent = filename;
         previewContainer.classList.remove("hidden");
@@ -2907,6 +3252,61 @@
 
           chatList.appendChild(chatElement);
         });
+      }
+
+      function openMessageInfoModal(message) {
+        const modal = document.getElementById("message-info-modal");
+        const modalContent = modal.querySelector(".modal-content");
+        document.getElementById("message-info-id").textContent = message.id;
+        document.getElementById("message-info-sender").textContent =
+          message.username;
+        document.getElementById("message-info-timestamp").textContent = new Date(
+          message.timestamp,
+        ).toLocaleString();
+
+        const messageInfoContent = document.getElementById("message-info-content");
+        const messageInfoSticker = document.getElementById("message-info-sticker");
+        const messageInfoAttachment = document.getElementById(
+          "message-info-attachment",
+        );
+        const messageInfoReply = document.getElementById("message-info-reply");
+
+        if (message.message) {
+          messageInfoContent.classList.remove("hidden");
+          messageInfoContent.textContent = message.message;
+        } else {
+          messageInfoContent.classList.add("hidden");
+        }
+
+        messageInfoSticker.classList.toggle("hidden", !message.sticker);
+        messageInfoSticker.textContent = message.sticker?.fileName;
+
+        messageInfoAttachment.classList.toggle("hidden", !message.attachment);
+        messageInfoAttachment.textContent = message.attachment?.fileName;
+
+        messageInfoReply.classList.toggle("hidden", !message.reply);
+        messageInfoReply.textContent = message.reply;
+
+        modal.classList.remove("hidden");
+      }
+
+      function closeMessageInfoModal() {
+        const modal = document.getElementById("message-info-modal");
+        modal.classList.add("hidden");
+      }
+
+      function displayReplyDisplay() {
+        const replyDisplay = document.getElementById("reply-display");
+        const replyMessage = document.getElementById("reply-display-message");
+        const replySender = document.getElementById("reply-display-sender");
+
+        if (replyingTo) {
+          replyDisplay.classList.remove("hidden");
+          replyMessage.textContent = replyingTo.message; // Assuming replyingTo has a message property
+          replySender.textContent = `Replying to ${replyingTo.username}: `; // Assuming replyingTo has a username property
+        } else {
+          replyDisplay.classList.add("hidden");
+        }
       }
 
       function showUserProfile(user, chat) {
@@ -3151,6 +3551,8 @@
         uploadedFile = null;
         uploadedFileMimeType = null;
         fileName = null;
+        replyingTo = null;
+        displayReplyDisplay();
         resetFileInput();
         displayUploadedFile();
         document.title = "Chat";
@@ -3231,14 +3633,17 @@
             `cursor-pointer inline-block rounded-lg border border-opacity-25 hover:border-opacity-50 m-2 ml-auto border-${settings.primary_color}-300 bg-${settings.primary_color}-700 p-3 w-24 h-24`;
           const img = document.createElement("img");
           img.className = "w-full h-full object-contain";
-          img.src = `${rootUrl}/file/${data}`;
+          img.src = `${rootUrl}/attachment/${data}`;
           img.alt = stickers[data].fileName;
           element.appendChild(img);
           element.addEventListener("click", () => {
             socket.emit("send_sticker", {
+              reply: replyingTo ? replyingTo.id : null,
               data: data,
               fileName: stickers[data].fileName,
             });
+            replyingTo = null;
+            displayReplyDisplay();
           });
           stickerListElement.appendChild(element);
         });
@@ -3249,6 +3654,8 @@
         uploadedFile = null;
         uploadedFileMimeType = null;
         fileName = null;
+        replyingTo = null;
+        displayReplyDisplay();
         resetFileInput();
         displayUploadedFile();
         currentChat = null;
@@ -3616,6 +4023,11 @@
           showToast("Failed to connect. Retrying...");
           setTimeout(() => socket.connect(), 3000);
         });
+
+        socket.on("disconnect", () => {
+          showToast("Disconnected from server.");
+        });
+
         socket.on("connect", () => {
           console.log("Connected to the server.");
           showToast("Connected to server.");
@@ -3636,9 +4048,30 @@
           }
           document.getElementById("register-btn").disabled = false;
           document.getElementById("login-btn").disabled = false;
-          if (settings.auto_login && autoLoginTriggered === false) {
+
+          // Check if we were previously logged in and auto-login is enabled
+          if (
+            (settings.auto_login && autoLoginTriggered === false) ||
+            (settings.auto_login && wasLoggedIn)
+          ) {
             autoLoginTriggered = true;
-            document.getElementById("login-btn").click();
+            if (savedUsername && savedPassword) {
+              socket.emit("login", {
+                username: savedUsername,
+                password: savedPassword,
+              });
+            }
+          }
+        });
+        socket.on("message_deleted", (data) => {
+          const { chatId, messageId } = data;
+          if (currentChat && currentChat.id === chatId) {
+            const messageElement = document.querySelector(
+              `[data-message-id="${messageId}"]`,
+            );
+            if (messageElement) {
+              messageElement.remove();
+            }
           }
         });
         socket.on("chats_list", (chats) => {
@@ -3686,12 +4119,12 @@
               appendMessage(message, true, timeStamp);
             });
 
-            setTimeout(() => {
+            requestAnimationFrame(() => {
               document.getElementById("message-container").scrollTo({
                 top: document.getElementById("message-container").scrollHeight,
                 behavior: "instant",
               });
-            }, 50);
+            });
           }
         });
         socket.on("message_received", ({ chatId, message }) => {
@@ -3705,55 +4138,67 @@
       function setSocketEvents_responses() {
         socket.on("authenticated", async (user) => {
           currentUser = user;
+
+          // Save credentials
+          localStorage.setItem("chatapp:username", user.username);
+          localStorage.setItem("chatapp:password", user.password);
+
+          // Update UI elements
           document.getElementById("login-page").classList.add("hidden");
           document.getElementById("chat-page").classList.remove("hidden");
           getColorForUser(user.username);
+
+          // Set profile info
           document.getElementById("profile-username-display").textContent =
             user.username;
           document.getElementById("self-pfp").src = `${rootUrl}/pfp/${user.id}`;
           document.getElementById("profile-user-visibility").textContent =
             currentUser.private ? "Private" : "Public";
-
           document.getElementById("profile-user-id").textContent = user.id;
-
           document.getElementById("home-id-display").textContent = user.id;
-
           document.getElementById("profile-user-creation").textContent = new Date(
             user.creationTime,
           ).toString();
+
+          // Show loading and navigate
           showDesc("Logging in...");
           await showLoadingPage();
-          if (!isMobile) {
-            toHome();
-          } else {
-            toHome();
+          toHome();
+          if (isMobile) {
             mobileSwitchToPane(1);
           }
           showToast("Logged in successfully.");
         });
+
         socket.on("registered", (user) => {
           showDesc("Logging in...");
           showLoadingPage();
           currentUser = user;
+
+          // Save credentials
+          localStorage.setItem("chatapp:username", user.username);
+          localStorage.setItem("chatapp:password", user.password);
+
+          // Update UI elements
           document.getElementById("login-page").classList.add("hidden");
           document.getElementById("chat-page").classList.remove("hidden");
           getColorForUser(user.username);
+
+          // Set profile info
           document.getElementById("profile-username-display").textContent =
             user.username;
           document.getElementById("self-pfp").src = `${rootUrl}/pfp/${user.id}`;
           document.getElementById("profile-user-visibility").textContent =
             currentUser.private ? "Private" : "Public";
-
           document.getElementById("profile-user-id").textContent = user.id;
           document.getElementById("home-id-display").textContent = user.id;
-
           document.getElementById("profile-user-creation").textContent = new Date(
             user.creationTime,
           ).toString();
-          if (!isMobile) {
-            toHome();
-          } else {
-            toHome();
+
+          // Navigate
+          toHome();
+          if (isMobile) {
             mobileSwitchToPane(1);
           }
           showToast("Registered and logged in successfully.");
@@ -3870,6 +4315,8 @@
         });
         socket.on("account_deleted", () => {
           showToast("Account deleted.");
+          localStorage.removeItem("chatapp:password")
+          localStorage.removeItem("chatapp:username")
           document.getElementById("logout-btn").click();
         });
         socket.on("account_failed_to_delete", () => {
@@ -3957,8 +4404,6 @@
               username,
               password,
             });
-            localStorage.setItem("chatapp:username", username);
-            localStorage.setItem("chatapp:password", password);
           }
         });
         document
@@ -3977,8 +4422,6 @@
                 username,
                 password,
               });
-              localStorage.setItem("chatapp:username", username);
-              localStorage.setItem("chatapp:password", password);
             }
           });
       }
@@ -3989,6 +4432,17 @@
             e.preventDefault();
           }
         });
+
+        document.getElementById("open-game-btn").addEventListener(
+          "click",
+          async () => {
+            const res = await fetch(`${rootUrl}/game`);
+            const json = await res.json();
+            const url = json.url;
+            document.getElementById("game-screen").classList.remove("hidden");
+            document.getElementById("game-iframe").src = url;
+          },
+        );
 
         const searchUserInput = document.getElementById("search-user-input");
         const searchUserList = document.getElementById("search-user-list");
@@ -4276,6 +4730,7 @@
             if ((message || uploadedFile) && currentUser) {
               if (uploadedFile && uploadedFileMimeType) {
                 socket.emit("send_message", {
+                  reply: replyingTo ? replyingTo.id : null,
                   message,
                   attachment: {
                     uploadedFile,
@@ -4290,9 +4745,12 @@
                 displayUploadedFile();
               } else {
                 socket.emit("send_message", {
+                  reply: replyingTo ? replyingTo.id : null,
                   message,
                 });
               }
+              replyingTo = null;
+              displayReplyDisplay();
               messageInput.value = "";
             }
           });
@@ -4490,12 +4948,12 @@
             }
 
             const file = document.getElementById("chat-picture-upload").files[0];
-            const maxSizeInBytes = 1 * 1024 * 1024;
+            const maxSizeInBytes = 256 * 1024;
             if (!file) {
               return;
             }
             if (file.size > maxSizeInBytes) {
-              showToast("File size too big. Max of 1mb.");
+              showToast("File size too big. Max of 256kb.");
               return;
             }
 
@@ -4640,12 +5098,12 @@
             }
 
             const file = document.getElementById("pfp-upload").files[0];
-            const maxSizeInBytes = 1 * 1024 * 1024;
+            const maxSizeInBytes = 256 * 1024;
             if (!file) {
               return;
             }
             if (file.size > maxSizeInBytes) {
-              showToast("File size too big. Max of 1mb.");
+              showToast("File size too big. Max of 256kb.");
               return;
             }
 
@@ -4685,6 +5143,15 @@
       }
 
       function setHtmlContentListeners_htmlPreview() {
+      }
+
+      function setHtmlContentListeners_messageInfo() {
+        const messageInfoModal = document.getElementById("message-info-modal");
+        messageInfoModal.addEventListener("click", (e) => {
+          if (e.target.id === "message-info-modal") {
+            messageInfoModal.classList.add("hidden");
+          }
+        });
       }
 
       function setHtmlContentListeners_settingsMenu() {
@@ -4737,6 +5204,7 @@
           document.getElementById("user-profile-modal").classList.add("hidden");
           document.getElementById("login-page").classList.remove("hidden");
           showToast("Logged out.");
+          wasLoggedIn = false;
         });
       }
 
@@ -4756,6 +5224,7 @@
       }
 
       function setHtmlContentListeners_modals() {
+        setHtmlContentListeners_messageInfo();
         setHtmlContentListeners_chatSettingsModal();
         setHtmlContentListeners_userSettingsModal();
         setHtmlContentListeners_settingsMenu();
@@ -5065,22 +5534,17 @@
           try {
             const key = stickerKeys[i];
             console.log("Checking sticker:", key); // Log current sticker
-
-            const response = await fetch(`${rootUrl}/file/${key}`);
-
-            if (!response.ok) {
-              throw new Error(`Not 2xx response for ${key}`, { cause: response });
-              delete stickers[stickerKeys[i]];
+            const response = await fetch(`${rootUrl}/attachment/${key}`);
+            const responseText = await response.text(); // Get the response as text
+            if (response.status === 404 && responseText === "Not Found") {
+              console.error(`Sticker not found: ${key}`);
+              delete stickers[key]; // Use key instead of stickerKeys[i]
               localStorage.setItem("chatapp:stickers", JSON.stringify(stickers));
             } else {
               console.log("Valid response for sticker:", key); // Log success
             }
           } catch (err) {
-            console.error(
-              "Error processing sticker:",
-              err.message,
-              err.cause || "",
-            );
+            console.error("Error processing sticker:", err.message, err.cause || "");
             delete stickers[stickerKeys[i]];
             localStorage.setItem("chatapp:stickers", JSON.stringify(stickers));
           }
@@ -5106,6 +5570,14 @@
       //----------------------------------------------//
       // Main
       async function main() {
+        window.addEventListener("online", () => {
+          console.log("Online");
+          autoLoginTriggered = false; // Reset autoLoginTriggered when online
+        });
+        window.addEventListener("offline", () => {
+          console.log("Offline");
+          autoLoginTriggered = false;
+        });
         const setupTime = await trackRunTime(runFunctions);
         showToast(`Chat App loaded in ${setupTime}ms.`);
       }

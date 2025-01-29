@@ -1,6 +1,6 @@
 {
-  "short_name": "Chat App",
-  "name": "Skibidi Chat App",
+  "short_name": "Skibidi Chat",
+  "name": "Skibidi Chat",
   "description": "Skibidi Chat - A real-time chat application.",
   "keywords": "Chat, Real-time, WebSocket, Messaging",
   "icons": [

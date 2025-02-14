@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.16.0";
+const version = "v0.17.0";
 const admin = require("firebase-admin");
 const serviceAccountJson = Buffer.from(
   process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
@@ -21,7 +21,6 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
   maxHttpBufferSize: 1e8,
-  pingTimeout: 60000,
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
@@ -36,17 +35,31 @@ console.log(randomCharacters);
 
 app.use(express.static("public"));
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/index.html"));
+  res.send(fs.path.join(__dirname, "public/index.html"));
 });
-app.get("/dist/styles.css", (req, res) => {
-  res.sendFile(path.join(__dirname, "dist/styles.css"));
-});
+
 app.get("/changelog.md", (req, res) => {
   res.sendFile(path.join(__dirname, "CHANGELOG.md"));
 });
 app.get("/game", (req, res) => {
   res.send(JSON.stringify({ url: process.env.GAMEURL }));
 });
+
+// Endpoint to get statistics
+app.get("/api/stats", (req, res) => {
+  res.json({
+    currentUserCount: activeConnections.size,
+    totalChats: Object.keys(chats).length,
+    totalUsers: Object.keys(users).length,
+    totalAttachments: Object.keys(attachments).length,
+    messageCount,
+  });
+});
+
+app.get("/dashboard", (req, res) => {
+  res.sendFile(__dirname + "/other/dash.html");
+});
+
 app.get("/" + randomCharacters, (req, res) => {
   console.log("data requested");
   res.send(
@@ -145,6 +158,7 @@ let attachments = {};
 let profilePictures = {};
 let chatPictures = {};
 
+let messageCount = 0;
 let activeConnections = new Map();
 
 async function saveData(dir, id, data) {
@@ -186,7 +200,9 @@ function createChat(name, creatorId, creatorUsername) {
     messages: [],
     created: Date.now(),
   };
-  Object.keys(newChat).forEach(key => newChat[key] === undefined ? delete newChat[key] : {});
+  Object.keys(newChat).forEach((key) =>
+    newChat[key] === undefined ? delete newChat[key] : {}
+  );
   newChat.participantsUnread[creatorId] = 0;
   newChat.participantsLastMessageTimestamp[creatorId] = Date.now();
   chats[chatId] = newChat;
@@ -360,7 +376,9 @@ function addServerMessage({ chatId, action, userActed, userActedOn, value }) {
     value,
     timestamp: Date.now(),
   };
-  Object.keys(newMessage).forEach(key => newMessage[key] === undefined ? delete newMessage[key] : {});
+  Object.keys(newMessage).forEach((key) =>
+    newMessage[key] === undefined ? delete newMessage[key] : {}
+  );
 
   chat.messages.push(newMessage);
   saveData("chats", chatId, chat);
@@ -459,7 +477,9 @@ function addMessage(chatId, message, attachment, senderId, reply = null) {
 }
 
 function registerUser(username, password) {
-  const existingUser = Object.values(users).find((u) => u.username === username);
+  const existingUser = Object.values(users).find((u) =>
+    u.username === username
+  );
   if (existingUser) {
     return null;
   }
@@ -595,11 +615,11 @@ function deleteMessage(chatId, messageId, userId) {
   // Remove the message
   chat.messages.splice(messageIndex, 1);
 
-  chat.messages.forEach((msg)=>{
-    if(msg.reply === messageId){
-      msg.reply = "deleted"
+  chat.messages.forEach((msg) => {
+    if (msg.reply === messageId) {
+      msg.reply = "deleted";
     }
-  })
+  });
   saveData("chats", chatId, chat);
   return true;
 }
@@ -769,7 +789,7 @@ io.on("connection", (socket) => {
       data: Buffer.from(file).toString("base64"),
       mime: mime,
     };
-    saveData("attachments", index, attachments[index])
+    saveData("attachments", index, attachments[index]);
     socket.emit("sticker_created", { data: index, fileName });
   });
   socket.on("search_user", ({ query }, callback) => {
@@ -1070,6 +1090,11 @@ function main() {
     if (value !== chats && value !== undefined) {
       chats = value;
     }
+    messageCount = Object.values(chats).map((c) => c.messages?.length || 0)
+      .reduce(
+        (accumulator, currentValue) => accumulator + currentValue,
+        0,
+      );
   });
 
   const usersRef = db.ref("/users");

@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./public/index.html"],
+  content: ["./public/index.html", "./public/script.js"],
   safelist: [
     // Background colors from 100 to 900
     "bg-blue-100",

@@ -1,12 +1,12 @@
 {
   "name": "chatapp",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "tailwindcss -i ./src/styles.css -o ./dist/styles.css",
-    "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --watch"
+    "build": "tailwindcss -i ./src/styles.css -o ./public/styles.css && node copy.js",
+    "build:css": "tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"
   },
   "keywords": [],
   "author": "skiibiidee",

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        background-color: #0a0a0a;
+        color: #e5e7eb;
+        font-family: "Inter", sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-950 text-gray-300">
+    <div class="container mx-auto p-6">
+      <h1 class="text-3xl font-bold text-center mb-6">Dashboard</h1>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+          <h5 class="text-lg font-semibold">Current Users in Chat</h5>
+          <h2 id="current-user-count" class="text-3xl font-bold">0</h2>
+          <canvas id="userChart"></canvas>
+        </div>
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+          <h5 class="text-lg font-semibold">Total Chats</h5>
+          <h2 id="total-chats" class="text-3xl font-bold">0</h2>
+          <canvas id="chatChart"></canvas>
+        </div>
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+          <h5 class="text-lg font-semibold">Total Users</h5>
+          <h2 id="total-users" class="text-3xl font-bold">0</h2>
+          <canvas id="totalUserChart"></canvas>
+        </div>
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+          <h5 class="text-lg font-semibold">Total Messages</h5>
+          <h2 id="total-messages" class="text-3xl font-bold">0</h2>
+          <canvas id="messageChart"></canvas>
+        </div>
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+          <h5 class="text-lg font-semibold">Total Attachments</h5>
+          <h2 id="total-attachments" class="text-3xl font-bold">0</h2>
+          <canvas id="attachmentChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      async function fetchStats() {
+        const response = await fetch("/api/stats");
+        const data = await response.json();
+        document.getElementById("current-user-count").innerText =
+          data.currentUserCount;
+        document.getElementById("total-chats").innerText = data.totalChats;
+        document.getElementById("total-users").innerText = data.totalUsers;
+        document.getElementById("total-messages").innerText = data.messageCount;
+        document.getElementById("total-attachments").innerText =
+          data.totalAttachments;
+        updateChart(userChart, data.currentUserCount);
+        updateChart(chatChart, data.totalChats);
+        updateChart(totalUserChart, data.totalUsers);
+        updateChart(messageChart, data.messageCount);
+        updateChart(attachmentChart, data.totalAttachments);
+      }
+
+      function createChart(ctx, label) {
+        return new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [{
+              label: label,
+              data: [],
+              borderColor: "rgba(255, 99, 132, 1)",
+              borderWidth: 2,
+              fill: false,
+            }],
+          },
+          options: {
+            scales: {
+              y: { beginAtZero: true },
+            },
+          },
+        });
+      }
+
+      function updateChart(chart, newData) {
+        const now = new Date().toLocaleTimeString();
+        chart.data.labels.push(now);
+        chart.data.datasets[0].data.push(newData);
+        if (chart.data.labels.length > 10) {
+          chart.data.labels.shift();
+          chart.data.datasets[0].data.shift();
+        }
+        chart.update();
+      }
+
+      const userChart = createChart(
+        document.getElementById("userChart").getContext("2d"),
+        "Current Users",
+      );
+      const chatChart = createChart(
+        document.getElementById("chatChart").getContext("2d"),
+        "Total Chats",
+      );
+      const totalUserChart = createChart(
+        document.getElementById("totalUserChart").getContext("2d"),
+        "Total Users",
+      );
+      const messageChart = createChart(
+        document.getElementById("messageChart").getContext("2d"),
+        "Total Messages",
+      );
+      const attachmentChart = createChart(
+        document.getElementById("attachmentChart").getContext("2d"),
+        "Total Attachments",
+      );
+
+      setInterval(fetchStats, 5000);
+      fetchStats();
+    </script>
+  </body>
+</html>

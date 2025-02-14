@@ -1,3 +1,19 @@
+## v0.17.0
+
+### Firebase Deployment
+
+- Implemented automated deployment process for Firebase hosting
+- Simplified deployment commands for easier updates
+- Integrated CI/CD pipeline for continuous deployment
+
+### Mobile UI Changes
+
+- Added back button functionality for mobile users
+
+### 
+
+- Pasting files into chat.
+
 ## v0.16.0
 
 ### Added Firebase integration

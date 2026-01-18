@@ -993,7 +993,7 @@ io.on("connection", (socket) => {
     const userToRemove = users[userIdToRemove];
     if (!userToRemove) {
       return socket.emit("remove_user_failed", {
-        user: { id: userToRemove.id, username: userToRemove.username },
+        user: { id: userToRemove?.id, username: userToRemove?.username },
         chatId,
       });
     }

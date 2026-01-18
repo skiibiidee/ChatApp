@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.17.0";
+const version = "v0.18.0";
 const admin = require("firebase-admin");
 const serviceAccountJson = Buffer.from(
   process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
@@ -26,12 +26,6 @@ const io = socketIO(server, {
     methods: ["GET", "POST"],
   },
 });
-
-const randomCharacters = [...Array(32)]
-  .map(() => Math.floor(Math.random() * 16).toString(16))
-  .join("");
-
-console.log(randomCharacters);
 
 app.use(express.static("public"));
 app.get("/", (req, res) => {
@@ -60,18 +54,6 @@ app.get("/dashboard", (req, res) => {
   res.sendFile(__dirname + "/other/dash.html");
 });
 
-app.get("/" + randomCharacters, (req, res) => {
-  console.log("data requested");
-  res.send(
-    JSON.stringify({
-      chats,
-      users,
-      attachments,
-      profilePictures,
-      chatPictures,
-    }),
-  );
-});
 app.get("/download", (req, res) => {
   const html = String(
     fs.readFileSync(path.join(__dirname, "public/index.html")),
@@ -79,16 +61,12 @@ app.get("/download", (req, res) => {
     .replaceAll("io()", `io("${process.env["SERVICEURL"]}")`)
     .replaceAll(`rootUrl = ""`, `rootUrl = "${process.env["SERVICEURL"]}"`)
     .replaceAll(
-      `href="/favicon-512x512.png"`,
-      `href="${process.env["SERVICEURL"]}/favicon-512x512.png"`,
+      `href="/icon.png"`,
+      `href="${process.env["SERVICEURL"]}/icon.png"`,
     )
     .replaceAll(
       `href="/dist/styles.css"`,
       `href="${process.env["SERVICEURL"]}/dist/styles.css"`,
-    )
-    .replaceAll(
-      `src="/script.js"`,
-      `src="${process.env["SERVICEURL"]}/script.js"`,
     );
   res.setHeader(
     "Content-Disposition",
@@ -201,7 +179,7 @@ function createChat(name, creatorId, creatorUsername) {
     created: Date.now(),
   };
   Object.keys(newChat).forEach((key) =>
-    newChat[key] === undefined ? delete newChat[key] : {}
+    newChat[key] === undefined ? delete newChat[key] : {},
   );
   newChat.participantsUnread[creatorId] = 0;
   newChat.participantsLastMessageTimestamp[creatorId] = Date.now();
@@ -220,20 +198,148 @@ function deleteChat(chatId, userId, preDeleteFunction) {
   if (!chats[chatId]) return false;
 
   if (chats[chatId].admin.id !== userId) return false;
-  preDeleteFunction();
+  if (preDeleteFunction) preDeleteFunction();
   chats[chatId].messages.forEach((message) => {
     if (message.attachment) {
       delete attachments[message.attachment.data];
+      deleteData("attachments", message.attachment.data);
     }
   });
+  const usersInChat = chats[chatId].participants.map((id) => users[id]);
+
   delete chatPictures[chatId];
   delete chats[chatId];
+
   deleteData("chatPictures", chatId);
   deleteData("chats", chatId);
+  usersInChat.forEach((user) => {
+    if (user.inviteOut) {
+      Object.keys(user.inviteOut).forEach((inviteId) => {
+        if (inviteId.startsWith(chatId)) {
+          if (users[user.inviteOut[inviteId].inviteeId]) {
+            const invitee = users[user.inviteOut[inviteId].inviteeId];
+            if (invitee.inviteIn) {
+              if (Object.keys(invitee.inviteIn).includes(chatId + user.id)) {
+                delete users[invitee.id].inviteIn[chatId + user.id];
+                saveData("users", invitee.id, users[invitee.id]);
+                io.sockets.sockets.forEach((s) => {
+                  if (s.user && s.user.id === invitee.id)
+                    s.emit("invites", getInvites(s.user.id));
+                });
+              }
+            }
+          }
+          delete users[user.id].inviteOut[inviteId];
+          saveData("users", user.id, users[user.id]);
+          io.sockets.sockets.forEach((s) => {
+            if (s.user && s.user.id === user.id)
+              s.emit("invites", getInvites(s.user.id));
+          });
+        }
+      });
+    }
+  });
+
   return true;
 }
 
-function addUserToChat(chatId, userAdding, addedByUser) {
+function inviteUserToChat(chatId, userAdding, addedByUser) {
+  const chat = chats[chatId];
+  if (!users[userAdding.id]) return false;
+  if (!users[addedByUser.id]) return false;
+  if (!chat) return false;
+  if (chat.participants.includes(userAdding.id)) return false;
+  if (!chat.participants.includes(addedByUser.id)) return false;
+  if (!users[userAdding.id].inviteIn) {
+    users[userAdding.id].inviteIn = {};
+  }
+
+  if (!users[userAdding.id].inviteOut) {
+    users[userAdding.id].inviteOut = {};
+  }
+
+  users[userAdding.id].inviteIn[chatId + addedByUser.id] = {
+    chatName: chat.name,
+    chatId: chatId,
+    inviterId: addedByUser.id,
+    time: Date.now(),
+    inviterUsername: addedByUser.username,
+  };
+  saveData("users", userAdding.id, users[userAdding.id]);
+  if (!users[addedByUser.id].inviteIn) {
+    users[addedByUser.id].inviteIn = {};
+  }
+  if (!users[addedByUser.id].inviteOut) {
+    users[addedByUser.id].inviteOut = {};
+  }
+  users[addedByUser.id].inviteOut[chatId + userAdding.id] = {
+    chatName: chat.name,
+    chatId: chatId,
+    inviteeId: userAdding.id,
+    time: Date.now(),
+    inviteeUsername: userAdding.username,
+  };
+
+  saveData("users", addedByUser.id, users[addedByUser.id]);
+  return { id: userAdding.id, username: userAdding.username };
+}
+
+function rejectInvite(chatId, user, inviter) {
+  if (!chats[chatId]) return false;
+  if (!users[user.id]) return false;
+  if (!users[inviter.id]) return false;
+
+  if (user.inviteIn) {
+    if (Object.keys(user.inviteIn).includes(chatId + inviter.id)) {
+      delete users[user.id].inviteIn[chatId + inviter.id];
+      saveData("users", user.id, users[user.id]);
+    }
+  }
+  if (inviter.inviteOut) {
+    if (Object.keys(inviter.inviteOut).includes(chatId + user.id)) {
+      delete users[inviter.id].inviteOut[chatId + user.id];
+      saveData("users", inviter.id, users[inviter.id]);
+    }
+  }
+
+  return true;
+}
+
+function cancelInvite(chatId, invitee, user) {
+  if (!chats[chatId]) return false;
+  if (!users[user.id]) return false;
+  if (!users[invitee.id]) return false;
+  if (invitee.inviteIn) {
+    if (Object.keys(invitee.inviteIn).includes(chatId + user.id)) {
+      delete users[invitee.id].inviteIn[chatId + user.id];
+      saveData("users", invitee.id, users[invitee.id]);
+    }
+  }
+  if (user.inviteOut) {
+    if (Object.keys(user.inviteOut).includes(chatId + invitee.id)) {
+      delete users[user.id].inviteOut[chatId + invitee.id];
+      saveData("users", user.id, users[user.id]);
+    }
+  }
+  return true;
+}
+
+function getInvites(userId) {
+  const user = users[userId];
+  if (!user) return false;
+  let out = user.inviteOut;
+  let inn = user.inviteIn;
+  if (!out) out = {};
+  if (!inn) inn = {};
+
+  const response = {
+    outinvites: Object.values(out),
+    ininvites: Object.values(inn),
+  };
+  return response;
+}
+
+function acceptInvite(chatId, userAdding, addedByUser) {
   const chat = chats[chatId];
   if (!chat) {
     return {
@@ -278,8 +384,21 @@ function addUserToChat(chatId, userAdding, addedByUser) {
     userActed: { id: addedByUser.id, username: addedByUser.username },
     userActedOn: { id: userAdding.id, username: userAdding.username },
   });
+
   saveData("chats", chatId, chat);
 
+  if (userAdding.inviteIn) {
+    if (Object.keys(userAdding.inviteIn).includes(chatId + addedByUser.id)) {
+      delete users[userAdding.id].inviteIn[chatId + addedByUser.id];
+      saveData("users", userAdding.id, users[userAdding.id]);
+    }
+  }
+  if (addedByUser.inviteOut) {
+    if (Object.keys(addedByUser.inviteOut).includes(chatId + userAdding.id)) {
+      delete users[addedByUser.id].inviteOut[chatId + userAdding.id];
+      saveData("users", addedByUser.id, users[addedByUser.id]);
+    }
+  }
   return {
     success: true,
     chat,
@@ -338,8 +457,8 @@ function getUserChats(userId) {
       participants: chat.participants,
       participantsUsernames: chat.participantsUsernames,
       lastMessage: chat.messages[chat.messages?.length - 1] || null,
-      userLastMessageTimestamp: chat.participantsLastMessageTimestamp[userId] ||
-        0,
+      userLastMessageTimestamp:
+        chat.participantsLastMessageTimestamp[userId] || 0,
       userUnread: chat.participantsUnread
         ? Object.keys(chat.participantsUnread).includes(userId)
           ? chat.participantsUnread[userId]
@@ -377,7 +496,7 @@ function addServerMessage({ chatId, action, userActed, userActedOn, value }) {
     timestamp: Date.now(),
   };
   Object.keys(newMessage).forEach((key) =>
-    newMessage[key] === undefined ? delete newMessage[key] : {}
+    newMessage[key] === undefined ? delete newMessage[key] : {},
   );
 
   chat.messages.push(newMessage);
@@ -412,11 +531,7 @@ function addMessage(chatId, message, attachment, senderId, reply = null) {
   };
 
   if (attachment) {
-    if (
-      attachment.fileName &&
-      attachment.uploadedFile &&
-      attachment.mimeType
-    ) {
+    if (attachment.fileName && attachment.uploadedFile && attachment.mimeType) {
       const maxSizeInBytes = 1 * 1024 * 1024;
       if (attachment.uploadedFile.size > maxSizeInBytes) {
         return;
@@ -477,8 +592,8 @@ function addMessage(chatId, message, attachment, senderId, reply = null) {
 }
 
 function registerUser(username, password) {
-  const existingUser = Object.values(users).find((u) =>
-    u.username === username
+  const existingUser = Object.values(users).find(
+    (u) => u.username === username,
   );
   if (existingUser) {
     return null;
@@ -502,6 +617,8 @@ function registerUser(username, password) {
     password: hashPassword(password),
     creationTime: Date.now(),
     private: false,
+    inviteOut: {},
+    inviteIn: {},
   };
   users[userId] = newUser;
   saveData("users", userId, newUser);
@@ -560,23 +677,27 @@ function setChatPicture(file, mime, chatId) {
 function deleteUser(userId) {
   const user = users[userId];
   if (user) {
-    delete users[userId];
-    delete profilePictures[userId];
-    deleteData("users", userId);
-    deleteData("profilePictures", userId);
-
     Object.values(chats)
       .filter((chat) => chat.participants.includes(userId))
       .forEach((chat) => {
         const isAdmin = chat.admin.id === userId;
         if (isAdmin) {
-          deleteChat(chat.id, userId, () => {
-            addServerMessage({
-              chatId: chat.id,
-              action: "account_delete",
-              userActed: { id: user.id, username: user.username },
+          if (
+            deleteChat(chat.id, userId, () => {
+              addServerMessage({
+                chatId: chat.id,
+                action: "account_delete",
+                userActed: { id: user.id, username: user.username },
+              });
+            })
+          ) {
+            io.sockets.sockets.forEach((s) => {
+              if (s.user && chat.participants.includes(s.user.id)) {
+                const userChats = getUserChats(s.user.id);
+                s.emit("chats_list", userChats);
+              }
             });
-          });
+          }
         } else {
           const removed = removeUserFromChat(chat.id, user, user);
           if (removed) {
@@ -591,6 +712,21 @@ function deleteUser(userId) {
           }
         }
       });
+    if (users[userId]?.inviteIn) {
+      Object.values(users[userId].inviteIn).map((invite) => {
+        rejectInvite(invite.chatId, user, users[invite.inviterId]);
+        io.sockets.sockets.forEach((s) => {
+          if (s.user?.id === invite.inviterId) {
+            s.emit("invites", getInvites(s.user.id));
+          }
+        });
+      });
+    }
+    delete users[userId];
+    delete profilePictures[userId];
+    deleteData("users", userId);
+    deleteData("profilePictures", userId);
+
     return true;
   }
   return false;
@@ -643,6 +779,7 @@ io.on("connection", (socket) => {
 
       const userChats = getUserChats(newUser.id);
       socket.emit("chats_list", userChats);
+      socket.emit("invites", getInvites(newUser.id));
     } else {
       socket.emit("registration_failed");
     }
@@ -663,6 +800,7 @@ io.on("connection", (socket) => {
 
       const userChats = getUserChats(user.id);
       socket.emit("chats_list", userChats);
+      socket.emit("invites", getInvites(user.id));
     } else {
       socket.emit("authentication_failed");
     }
@@ -745,12 +883,13 @@ io.on("connection", (socket) => {
     };
 
     chat.participantsLastMessageTimestamp[socket.user.id] = Date.now();
-    chat.participantsUnread[socket.user.id] = 0;
-
-    chat.messages.push(newMessage);
     if (!chat.participantsUnread) {
       chat.participantsUnread = {};
     }
+    chat.participantsUnread[socket.user.id] = 0;
+
+    chat.messages.push(newMessage);
+
     chat.participants.forEach((participantID) => {
       if (chat.participantsUnread[participantID]) {
         chat.participantsUnread[participantID]++;
@@ -867,7 +1006,65 @@ io.on("connection", (socket) => {
     if (!connection) return;
     addMessage(connection.chatId, message, attachment, socket.user.id, reply);
   });
+  socket.on("reject_invite", (data) => {
+    if (!socket.user) return;
+    const { chatId, inviterId } = data;
+    const inviter = users[inviterId];
+    if (!inviter) return;
+    if (!chats[chatId]) return;
+    let user = users[socket.user.id];
 
+    rejectInvite(chatId, user, inviter);
+    socket.emit("invites", getInvites(socket.user.id));
+    io.sockets.sockets.forEach((s) => {
+      if (s.user && s.user.id === inviterId) {
+        s.emit("invites", getInvites(s.user.id));
+      }
+    });
+  });
+  socket.on("cancel_invite", (data) => {
+    if (!socket.user) return;
+    const { chatId, inviteeId } = data;
+    const invitee = users[inviteeId];
+    if (!invitee) return;
+    if (!chats[chatId]) return;
+    let user = users[socket.user.id];
+    cancelInvite(chatId, invitee, user);
+    io.sockets.sockets.forEach((s) => {
+      if (
+        (s.user && s.user?.id === inviteeId) ||
+        s.user?.id === socket.user.id
+      ) {
+        s.emit("invites", getInvites(s.user.id));
+      }
+    });
+  });
+  socket.on("accept_invite", (data) => {
+    if (!socket.user) return;
+    const { chatId, inviterId } = data;
+    const inviter = users[inviterId];
+    if (!inviter) return;
+    let user = users[socket.user.id];
+
+    const result = acceptInvite(chatId, user, inviter);
+    if (result.success) {
+      socket.emit("invites", getInvites(socket.user.id));
+      const userChats = getUserChats(socket.user.id);
+      socket.emit("chats_list", userChats);
+      io.sockets.sockets.forEach((s) => {
+        if (s.user && s.user.id === inviterId) {
+          s.emit("invites", getInvites(s.user.id));
+          const userAddingChats = getUserChats(s.user.id);
+          s.emit("chats_list", userAddingChats);
+        } else if (s.user && result.chat.participants.includes(s.user.id)) {
+          const userchats = getUserChats(s.user.id);
+          s.emit("chats_list", userchats);
+        }
+      });
+    } else {
+      socket.emit("accept_invite_failed");
+    }
+  });
   socket.on("add_user_to_chat", (data) => {
     if (!socket.user) return;
     const { chatId, userId } = data;
@@ -875,19 +1072,19 @@ io.on("connection", (socket) => {
     if (!userAdding) {
       return socket.emit("add_user_failed");
     }
-    const result = addUserToChat(chatId, userAdding, socket.user);
+    const result = inviteUserToChat(chatId, userAdding, socket.user);
     const chat = chats[chatId];
 
-    if (result.success && chat) {
-      socket.emit("user_added", {
+    if (result && chat) {
+      socket.emit("user_invited", {
         chatId,
         chat,
-        user: { id: result.user.id, username: result.user.username },
+        user: { id: result.id, username: result.username },
       });
+      socket.emit("invites", getInvites(socket.user.id));
       io.sockets.sockets.forEach((s) => {
-        if (s.user && chat.participants.includes(s.user.id)) {
-          const userChats = getUserChats(s.user.id);
-          s.emit("chats_list", userChats);
+        if (s.user && s.user.id === userId) {
+          s.emit("invites", getInvites(s.user.id));
         }
       });
     } else {
@@ -993,7 +1190,7 @@ io.on("connection", (socket) => {
     const userToRemove = users[userIdToRemove];
     if (!userToRemove) {
       return socket.emit("remove_user_failed", {
-        user: { id: userToRemove.id, username: userToRemove.username },
+        user: { id: userToRemove?.id, username: userToRemove?.username },
         chatId,
       });
     }
@@ -1087,14 +1284,12 @@ function main() {
   chats = chatsSnapshot.val() || {}; // Convert the snapshot to a JavaScript object
   chatsRef.on("value", (snapshot) => {
     const value = snapshot.val();
-    if (value !== chats && value !== undefined) {
+    if (value != chats && value != undefined) {
       chats = value;
     }
-    messageCount = Object.values(chats).map((c) => c.messages?.length || 0)
-      .reduce(
-        (accumulator, currentValue) => accumulator + currentValue,
-        0,
-      );
+    messageCount = Object.values(chats)
+      .map((c) => c.messages?.length || 0)
+      .reduce((accumulator, currentValue) => accumulator + currentValue, 0);
   });
 
   const usersRef = db.ref("/users");
@@ -1102,7 +1297,7 @@ function main() {
   users = usersSnapshot.val() || {}; // Convert the snapshot to a JavaScript object
   usersRef.on("value", (snapshot) => {
     const value = snapshot.val();
-    if (value !== users && value !== undefined) {
+    if (value != users && value != undefined) {
       users = value;
     }
   });
@@ -1112,7 +1307,7 @@ function main() {
   attachments = attachmentsSnapshot.val() || {}; // Convert the snapshot to a JavaScript object
   attachmentsRef.on("value", (snapshot) => {
     const value = snapshot.val();
-    if (value !== attachments && value !== undefined) {
+    if (value != attachments && value != undefined) {
       attachments = value;
     }
   });
@@ -1122,7 +1317,7 @@ function main() {
   profilePictures = profilePicturesSnapshot.val() || {}; // Convert the snapshot to a JavaScript object
   profilePicturesRef.on("value", (snapshot) => {
     const value = snapshot.val();
-    if (value !== profilePictures && value !== undefined) {
+    if (value != profilePictures && value != undefined) {
       profilePictures = value;
     }
   });
@@ -1132,7 +1327,7 @@ function main() {
   chatPictures = chatPicturesSnapshot.val() || {}; // Convert the snapshot to a JavaScript object
   chatPicturesRef.on("value", (snapshot) => {
     const value = snapshot.val();
-    if (value !== chatPictures && value !== undefined) {
+    if (value != chatPictures && value != undefined) {
       chatPictures = value;
     }
   });

@@ -1,4 +1,5 @@
 node_modules
+.replit
 .env
 public/styles.css
 # Logs

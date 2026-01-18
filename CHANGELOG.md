@@ -1,3 +1,13 @@
+## v0.18.0
+
+### Chat Invites System
+
+- More control over chats you join
+
+### Clean Up
+
+- Overall cleanup
+
 ## v0.17.0
 
 ### Firebase Deployment
@@ -10,7 +20,7 @@
 
 - Added back button functionality for mobile users
 
-### 
+### Other 
 
 - Pasting files into chat.
 

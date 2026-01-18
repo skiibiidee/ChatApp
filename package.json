@@ -1,11 +1,11 @@
 {
   "name": "chatapp",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "description": "",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "tailwindcss -i ./src/styles.css -o ./public/styles.css && node copy.js",
+    "build": "tailwindcss -i ./src/styles.css -o ./public/styles.css",
     "build:css": "tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"
   },
   "keywords": [],
@@ -20,5 +20,8 @@
   },
   "devDependencies": {
     "tailwindcss": "^3.4.16"
+  },
+  "engines": {
+    "npm": ">=10"
   }
 }

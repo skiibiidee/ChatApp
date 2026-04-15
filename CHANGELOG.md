@@ -1,3 +1,10 @@
+## v0.18.1 (Minor)
+
+- Added Exporting and Importing of settings
+- Made colors text enterable, with all tailwind colors
+- Made dynamically filled content safer
+- Reimplimented firebase deploy
+
 ## v0.18.0
 
 ### Chat Invites System
@@ -7,6 +14,7 @@
 ### Clean Up
 
 - Overall cleanup
+- Removed Firebase Deployment
 
 ## v0.17.0
 
@@ -22,7 +30,7 @@
 
 ### Other 
 
-- Pasting files into chat.
+- Pasting files into chat
 
 ## v0.16.0
 
@@ -85,115 +93,115 @@
 
 ### Added profile picture
 
-- New profile pictures.
-- Shown in chat, and clickable.
-- Profile ui changed.
+- New profile pictures
+- Shown in chat, and clickable
+- Profile ui changed
 
 ### Added unread markers
 
-- Users can catch up easily.
-- For futher features.
+- Users can catch up easily
+- For futher features
 
 ## v0.13.0
 
 ### Added sending stickers
 
-- Server new attachment system.
-- Allows links of attachments.
-- Sticker menu and saving.
+- Server new attachment system
+- Allows links of attachments
+- Sticker menu and saving
 
 ## v0.12.2 (Minor)
 
-- Added Searching for users.
+- Added Searching for users
 
 ## v0.12.1 (Minor)
 
-- Added dropping attachments.
-- Changed chat log logging user data.
-- Autologin setting.
+- Added dropping attachments
+- Changed chat log logging user data
+- Autologin setting
 
 ## v0.12.0
 
 ### Added viewing others profile
 
-- Server communication to get data.
+- Server communication to get data
 
 ### UI changes
 
-- Many `hover:` changes to make app feel more interactive.
-- New settings menu, cleaning up UI.
-- Copy button change.
-- New text color setting.
-- New background setting.
-- New Message Opacity setting.
+- Many `hover:` changes to make app feel more interactive
+- New settings menu, cleaning up UI
+- Copy button change
+- New text color setting
+- New background setting
+- New Message Opacity setting
 
 ## v0.11.0
 
 ### Added message attachments
 
 - Allows upload of files up to 1mb
-- Encoded to Base64 for json storage.
-- Display as image if data supports image.
-- Html preview for .html files.
-- Downloading file.
+- Encoded to Base64 for json storage
+- Display as image if data supports image
+- Html preview for .html files
+- Downloading file
 
 ### Switched to tailwind CLI
 
-- Production ready.
-- Allows configuration later on.
+- Production ready
+- Allows configuration later on
 
 ### Added search boxes
 
-- Search inputs in chat participants list and chat list.
-- Onchange, updates visibility of chats.
+- Search inputs in chat participants list and chat list
+- Onchange, updates visibility of chats
 
 ### Chat logs
 
-- Instead of a non malleable string, saves event data as object.
-- Allows configuration later on.
+- Instead of a non malleable string, saves event data as object
+- Allows configuration later on
 
 ### UI
 
-- "Black" color, set as default primary.
-- Floating create chat button.
-- Hover and select effects on chats in chat list.
-- Create chat button shown when no chats are found.
-- Settings button and menu.
+- "Black" color, set as default primary
+- Floating create chat button
+- Hover and select effects on chats in chat list
+- Create chat button shown when no chats are found
+- Settings button and menu
 
 ### Other
 
-- New setting: Show id instead of username in chat logs.
-- New setting: focus on message box after actions.
-- Home page as static html.
+- New setting: Show id instead of username in chat logs
+- New setting: focus on message box after actions
+- Home page as static html
 - Rewrote code to use js generated DOM items instead of XSS vulnerable
-  `.innerHTML`.
+  `.innerHTML`
 
 ## v0.10.0
 
 ### Added settings function
 
-- Code rewrites to setup settings first.
-- Changing toast specifics.
-- Changing page colors.
-- Changing loading screen load time.
+- Code rewrites to setup settings first
+- Changing toast specifics
+- Changing page colors
+- Changing loading screen load time
 
 ### Added loading screen
 
-- Clean ui with transitions.
-- Feels more interactive.
+- Clean ui with transitions
+- Feels more interactive
 
 ### Added favicon and manifest.json
 
-- Allows easy installation of PWAs.
-- Changing page colors.
-- Changing loading screen load time.
+- Allows easy installation of PWAs
+- Changing page colors
+- Changing loading screen load time
 
 ### Fixed package-lock.json
 
-- Changed project name and version.
+- Changed project name and version
 
 ### Other
 
-- Sorted chat list based on last interact.
+- Sorted chat list based on last interact
 
 > CHANGELOG from v0.10.0

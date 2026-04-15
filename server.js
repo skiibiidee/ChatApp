@@ -5,7 +5,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const crypto = require("crypto");
 const path = require("path");
-const version = "v0.18.0";
+const version = "v0.18.1";
 const admin = require("firebase-admin");
 const serviceAccountJson = Buffer.from(
   process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
@@ -65,8 +65,8 @@ app.get("/download", (req, res) => {
       `href="${process.env["SERVICEURL"]}/icon.png"`,
     )
     .replaceAll(
-      `href="/dist/styles.css"`,
-      `href="${process.env["SERVICEURL"]}/dist/styles.css"`,
+      `href="/styles.css"`,
+      `href="${process.env["SERVICEURL"]}/styles.css"`,
     );
   res.setHeader(
     "Content-Disposition",
@@ -467,9 +467,9 @@ function getUserChats(userId) {
     }));
 }
 
-function getChatMessages(chatId, userId) {
+function getChatMessages(chatId) {
   const chat = chats[chatId];
-  if (!chat || !chat.participants.includes(userId)) return null;
+  if (!chat) return null;
   return chat.messages;
 }
 
@@ -736,6 +736,7 @@ function deleteMessage(chatId, messageId, userId) {
   const chat = chats[chatId];
   if (!chat) return false;
 
+  if (!chat.participants.includes(userId)) return false;
   const messageIndex = chat.messages.findIndex((m) => m.id === messageId);
   if (messageIndex === -1) return false;
 
@@ -990,11 +991,12 @@ io.on("connection", (socket) => {
       chatId,
     });
 
-    const messages = getChatMessages(chatId, socket.user.id);
+    const messages = getChatMessages(chatId);
     if (messages) {
       socket.emit("chat_messages", {
         chatId,
         messages,
+        fromDelete: false,
       });
     }
   });
@@ -1257,10 +1259,14 @@ io.on("connection", (socket) => {
         .map(([socketId]) => socketId);
 
       chatConnections.forEach((socketId) => {
-        io.to(socketId).emit("message_deleted", {
-          chatId,
-          messageId,
-        });
+        const messages = getChatMessages(chatId);
+        if (messages) {
+          io.to(socketId).emit("chat_messages", {
+            chatId,
+            messages,
+            fromDelete: true,
+          });
+        }
       });
     }
   });

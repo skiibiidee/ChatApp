@@ -17,9 +17,4 @@ firebase-debug.*.log*
 
 # Firebase configuration files
 *.firebase
-firebase/*.html
-firebase/index.html
-firebase/CHANGELOG.md
-firebase/manifest.json
-firebase/script.js
-firebase/styles.css
+firebase/*

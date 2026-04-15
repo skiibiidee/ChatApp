@@ -1,7 +1,7 @@
 {
   "short_name": "Skibidi Chat",
   "name": "Skibidi Chat",
-  "description": "Skibidi Chat - A real-time chat application.",
+  "description": "Skibidi Chat",
   "keywords": "Chat, Real-time, WebSocket, Messaging",
   "icons": [
     {
@@ -12,6 +12,6 @@
   ],
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "rgb(17 24 39)",
-  "background_color": "rgb(17 24 39)"
+  "theme_color": "rgb(0 0 0)",
+  "background_color": "rgb(0 0 0)"
 }

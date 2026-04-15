@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "skibidi-db"
-  }
+  },
+  "targets": {
+    "skibidi-db": {
+      "hosting": {
+        "skibidi-db": [
+          "skibidi-db"
+        ],
+        "skibichat": [
+          "skibichat"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

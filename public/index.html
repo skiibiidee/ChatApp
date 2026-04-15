@@ -156,11 +156,12 @@
       <div class="text-center space-y-12">
         <div class="relative">
           <h1
-            class="inline-flex text-6xl font-bold bg-gradient-to-r from-secondarycolor-200 to-secondarycolor-700 bg-clip-text text-transparent animate-pulse"
+            id="loading-page-title"
+            class="inline-flex text-6xl mr-4 font-bold bg-gradient-to-r from-secondarycolor-200 to-secondarycolor-700 bg-clip-text text-transparent animate-pulse"
           >
             Skibidi Chat
           </h1>
-          <div class="inline-flex ml-4 w-12 h-12">
+          <div class="inline-flex w-12 h-12">
             <div class="animate-spin">
               <svg
                 viewBox="0 0 24 24"
@@ -209,6 +210,7 @@
         class="bg-color-800 backdrop-blur-sm p-8 rounded-2xl shadow-2xl w-full max-w-md overflow-y-auto max-h-[90vh] border border-color-700 border-opacity-50"
       >
         <h1
+          id="login-page-title"
           class="text-5xl font-bold mb-2 relative bg-gradient-to-r from-secondarycolor-200 to-secondarycolor-700 bg-clip-text text-transparent"
         >
           Skibidi Chat<span
@@ -582,40 +584,28 @@
             <div
               class="flex flex-col items-center justify-center h-screen text-textcolor-900 space-y-4 px-4"
             >
-              <div class="relative">
-                <h1
-                  class="text-5xl font-bold bg-gradient-to-r from-secondarycolor-200 to-secondarycolor-700 bg-clip-text text-transparent"
-                >
-                  Skibidi Chat
-                  <span
-                    id="home-version-display"
-                    class="version absolute -top-2 right-0 transform translate-x-full px-3 py-1 text-sm font-medium text-textcolor-900 rounded-full shadow-lg bg-gradient-to-r from-secondarycolor-500 to-secondarycolor-700"
-                  >
-                  </span>
-                </h1>
-              </div>
-
-              <div class="text-center space-y-3 max-w-lg">
-                <h2
-                  class="text-6xl font-bold mb-4 bg-gradient-to-r from-textcolor-900 to-textcolor-400 bg-clip-text text-transparent"
-                >
-                  Welcome Back
-                </h2>
-                <p class="text-lg text-textcolor-400 leading-relaxed">
-                  Create chats and connect with others using their user ID
-                </p>
-              </div>
-
-              <div
-                class="bg-color-700 p-6 rounded-2xl shadow-xl space-y-4 w-full max-w-md"
+              <h1
+                id="skibidi-chat-title"
+                class="text-5xl font-bold bg-gradient-to-r from-secondarycolor-200 to-secondarycolor-700 bg-clip-text text-transparent px-4"
               >
+                Skibidi Chat
+              </h1>
+              <button
+                id="open-changelog"
+                class="version px-3 py-1 text-sm font-semibold text-textcolor-500"
+              ></button>
+              <p class="text-lg text-textcolor-400 leading-relaxed">
+                Create chats and connect with others using their user ID
+              </p>
+
+              <div class="p-6 space-y-2 w-auto max-w-md">
                 <p
                   class="text-sm font-medium text-textcolor-400 uppercase tracking-wider"
                 >
                   Your User ID
                 </p>
                 <div
-                  class="flex items-center justify-between gap-4 bg-color-600 transition-all duration-200 px-6 py-4 rounded-xl"
+                  class="flex items-center text-textcolor-500 justify-between gap-4 transition-all duration-200"
                 >
                   <span id="home-id-display" class="font-mono text-xl"></span>
                   <svg
@@ -635,30 +625,10 @@
                   </svg>
                 </div>
               </div>
-
-              <button
-                id="open-changelog"
-                class="bg-color-700 hover:bg-color-600 transition-all duration-200 px-8 py-4 rounded-xl text-lg font-medium shadow-xl flex items-center gap-3 hover:scale-105 transform"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  />
-                </svg>
-                Changelog
-              </button>
               <p class="text-sm text-textcolor-400 mt-6">
                 For questions or suggestions, email
                 <a
+                  target="_blank"
                   href="mailto:skiibiidee@gmail.com"
                   class="text-textcolor-500 hover:underline"
                   >skiibiidee@gmail.com</a
@@ -1100,7 +1070,7 @@
               <img
                 id="self-pfp"
                 class="object-cover w-full h-full group-hover:opacity-50 transition-all duration-300"
-                src="/pfp/user-dzp56g"
+                src="/pfp/1"
               />
               <input
                 type="file"
@@ -1291,6 +1261,26 @@
           >
             <h2 class="text-xl font-medium text-textcolor-900">Preferences</h2>
             <div class="flex items-center space-x-3">
+              <a target="_blank" href="https://tailwindcss.com/docs/colors">
+                <button
+                  id="tailwind-colors-btn"
+                  class="text-sm p-2 rounded border-2 border-color-400 border-opacity-0 hover:border-opacity-100 transition-all ease-in-out duration-150"
+                >
+                  Tailwind Colors
+                </button>
+              </a>
+              <button
+                id="export-settings-btn"
+                class="text-sm p-2 rounded border-2 border-color-400 border-opacity-0 hover:border-opacity-100 transition-all ease-in-out duration-150"
+              >
+                Export
+              </button>
+              <button
+                id="import-settings-btn"
+                class="text-sm p-2 rounded border-2 border-color-400 border-opacity-0 hover:border-opacity-100 transition-all ease-in-out duration-150"
+              >
+                Import
+              </button>
               <button
                 id="reset-settings-btn"
                 class="text-sm text-red-400 hover:text-red-300 transition-colors"
@@ -1431,7 +1421,7 @@
           class="flex justify-between items-center p-1 bg-color-700 rounded-t-lg"
         >
           <button
-            onclick="document.getElementById('dash-screen').classList.add('hidden');"
+            onclick="document.getElementById('dash-screen').classList.add('hidden');document.getElementById('dash-iframe').src = '';"
             class="btn btn-red h-8 w-8 flex items-center justify-center"
           >
             <svg
@@ -1451,7 +1441,6 @@
         <iframe
           id="dash-iframe"
           class="w-full h-full border-0 overflow-scroll"
-          src="/dashboard"
         ></iframe>
       </div>
     </div>
@@ -1659,7 +1648,7 @@
       // Skibidi Chat Script =>
       var socket;
       const rootUrl = "";
-      const version = "v0.18.0";
+      const version = "v0.18.1";
       let wasLoggedIn = false;
       // Objects
       const settingsInfo = {
@@ -1679,7 +1668,7 @@
         profile_length_to_display: {
           default: 4,
           type: "number",
-          name: "Number of profiles shown on chat header",
+          name: "Number of profiles shown on chat header (reload)",
         },
         toast_duration: {
           default: 3,
@@ -1743,8 +1732,8 @@
         },
         text_color: {
           default: "white",
-          type: "drop",
-          options: ["white", "black", "gray", "zinc"],
+          type: "string",
+          lowerCase: true,
           name: "Text color (reload)",
           handle: (startUp) => {
             if (startUp) {
@@ -1790,16 +1779,8 @@
         },
         primary_color: {
           default: "black",
-          type: "drop",
-          options: [
-            "black",
-            "white",
-            "slate",
-            "gray",
-            "zinc",
-            "neutral",
-            "stone",
-          ],
+          type: "string",
+          lowerCase: true,
           name: "Primary color (reload)",
           handle: (startUp) => {
             if (startUp) {
@@ -1843,27 +1824,8 @@
         },
         secondary_color: {
           default: "blue",
-          type: "drop",
-          options: [
-            "black",
-            "white",
-            "blue",
-            "slate",
-            "gray",
-            "zinc",
-            "neutral",
-            "stone",
-            "red",
-            "orange",
-            "amber",
-            "yellow",
-            "lime",
-            "green",
-            "emerald",
-            "teal",
-            "cyan",
-            "sky",
-          ],
+          type: "string",
+          lowerCase: true,
           name: "Secondary color (reload)",
           handle: (startUp) => {
             if (startUp) {
@@ -1904,15 +1866,28 @@
             }
           },
         },
+        remove_title: {
+          default: false,
+          type: "boolean",
+          name: "Remove title from chat page",
+          handle: (startUp) => {
+            document.getElementById("skibidi-chat-title").style.display =
+              settings.remove_title ? "none" : "";
+            document.getElementById("login-page-title").style.display =
+              settings.remove_title ? "none" : "";
+            document.getElementById("loading-page-title").style.display =
+              settings.remove_title ? "none" : "";
+          },
+        },
         show_id_instead: {
           default: false,
           type: "boolean",
-          name: "Show id instead of username in chat logs",
+          name: "Show id instead of username in chat logs (reload)",
         },
         show_id_in_invites: {
           default: false,
           type: "boolean",
-          name: "Show id in chat invites",
+          name: "Show id in chat invites (reload)",
         },
         prevent_right_click: {
           default: false,
@@ -1938,6 +1913,10 @@
               for (let i = 0; i < versionDisplays.length; i++) {
                 versionDisplays[i].classList.add("hidden");
               }
+            } else {
+              const versionDisplays = document.querySelectorAll(".version");
+              for (let i = 0; i < versionDisplays.length; i++)
+                versionDisplays[i].classList.remove("hidden");
             }
           },
         },
@@ -1954,7 +1933,7 @@
         sort_by_self_timestamp: {
           default: false,
           type: "boolean",
-          name: "Sort chats by last time interactive with",
+          name: "Sort chats by last time interactive with (reload)",
         },
       };
       const settings = {};
@@ -1987,6 +1966,7 @@
       let msgsSinceLastShow = 0;
       let msgLastTimestamp = 0;
       let pageindex = 0;
+      let prevTS = 0;
       // Strings
       let lastMessageDay = null;
       let lastMessageSender = null;
@@ -1997,6 +1977,35 @@
       let autoLoginTriggered = false;
       //----------------------------------------------//
       // Utility Functions
+      function getSettingValue(key, settingValue) {
+        switch (settingsInfo[key].type) {
+          case "number":
+            const numberValue = Number(settingValue);
+            if (numberValue === "NaN") {
+              return null;
+            }
+            return numberValue;
+          case "boolean":
+            const booleanValue = [true, false].includes(settingValue)
+              ? settingValue
+              : null;
+            if (booleanValue === null) {
+              return null;
+            }
+            return booleanValue;
+          case "string":
+            if (settingValue) {
+              return settingValue;
+            }
+            return null;
+          case "drop":
+            if (settingValue) {
+              return settingValue;
+            }
+            return null;
+        }
+        return null;
+      }
       function setHeaderProfiles(currentChat) {
         const div = document.getElementById("chat-header-profiles");
         div.innerHTML = "";
@@ -2428,7 +2437,7 @@
           .classList.remove("hidden");
       }
 
-      function appendMessage(message, bulk, timeStamp) {
+      function appendMessage(message, bulk, timeStamp, fromDelete) {
         if (
           lastMessageDay !==
           formatDateToYearMonthDay(new Date(message.timestamp))
@@ -2847,13 +2856,22 @@
         // Create the vertical ellipsis button.
         const moreBtn = document.createElement("button");
         moreBtn.className = "cursor-pointer";
-        moreBtn.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-${settings.text_color}-500" fill="currentColor" viewBox="0 0 24 24">
+        const moreSvg = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg",
+        );
+        moreSvg.setAttribute(
+          "class",
+          `h-5 w-5 text-${settings.text_color}-500`,
+        );
+        moreSvg.setAttribute("fill", "currentColor");
+        moreSvg.setAttribute("viewBox", "0 0 24 24");
+        moreSvg.innerHTML = `
             <circle cx="12" cy="5" r="2"/>
             <circle cx="12" cy="12" r="2"/>
             <circle cx="12" cy="19" r="2"/>
-          </svg>
         `;
+        moreBtn.appendChild(moreSvg);
         controlsContainer.appendChild(moreBtn);
         msgOuter.appendChild(controlsContainer);
 
@@ -2979,7 +2997,7 @@
           const pfp = document.createElement("img");
           pfp.className =
             "w-10 h-10 rounded-full object-cover profile-pic cursor-pointer";
-          pfp.src = `${rootUrl}/pfp/${message.senderId}?v=${timeStamp}`;
+          pfp.src = `${rootUrl}/pfp/${message.senderId}?v=${fromDelete ? prevTS : timeStamp}`;
           pfp.addEventListener("click", () => {
             showUserProfile(
               { username: message.username, id: message.senderId },
@@ -4190,83 +4208,145 @@
         });
         socket.on("invites", (data) => {
           const { outinvites, ininvites } = data;
-          let outpageHTML = "";
-          let inpageHTML = "";
 
-          outinvites.forEach((invite) => {
-            outpageHTML += `<div class="flex items-center justify-between p-4 border-b border-${settings.primary_color}-700">
-              <div class="flex items-center">
-                <img src="${rootUrl}/chatpicture/${invite.chatId}" alt="Chat Picture" class="w-12 h-12 rounded-full mr-4">
-                <div>
-                  <p class="font-semibold text-${settings.text_color}-900">${settings.show_id_in_invites ? `[${invite.chatId}] ` : ""}${invite.chatName}</p>
-                  <button class="flex justify-center items-center border-2 border-${settings.primary_color}-500 border-opacity-0 hover:border-opacity-100 rounded text-sm text-${settings.text_color}-500" onclick="showUserProfile({id:'${invite.inviteeId}',username:'${invite.inviteeUsername}'})">                <img src="${rootUrl}/pfp/${invite.inviteeId}" alt="Invitee PFP" class="inline-flex w-4 h-4 rounded-full mr-2"><span>${settings.show_id_in_invites ? `[${invite.inviteeId}] ` : ""}${invite.inviteeUsername}</span></button>
-                  <p class="text-sm text-${settings.text_color}-400">${getTimestamp(invite.time)}</p>
-                </div>
-              </div>
-              <button class="bg-${settings.primary_color}-600 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-900 font-bold py-2 px-4 rounded border-2 border-opacity-0 hover:border-opacity-100 rounded border-red-600 transition-all ease-in-out duration-150" onclick="cancelInvite('${invite.chatId}','${invite.inviteeId}') ">Cancel</button>
-            </div>`;
-          });
-          ininvites.forEach((invite) => {
-            inpageHTML += `<div class="flex items-center justify-between p-4 border-b border-${settings.primary_color}-700">
-              <div class="flex items-center">
-                <img src="${rootUrl}/chatpicture/${invite.chatId}" alt="Chat Picture" class="w-12 h-12 rounded-full mr-4">
-                <div>
-                  <p class="font-semibold text-${settings.text_color}-900">${settings.show_id_in_invites ? `[${invite.chatId}] ` : ""}${invite.chatName}</p>
-                  <button class="flex justify-center items-center border-2 border-${settings.primary_color}-500 border-opacity-0 hover:border-opacity-100 rounded text-sm text-${settings.text_color}-500" onclick="showUserProfile({id:'${invite.inviterId}',username:'${invite.inviterUsername}'})"><img src="${rootUrl}/pfp/${invite.inviterId}" alt="Inviter PFP" class="inline-flex w-4 h-4 rounded-full mr-2"><span>${settings.show_id_in_invites ? `[${invite.inviterId}] ` : ""}${invite.inviterUsername}</span></button>
-                  <p class="text-sm text-${settings.text_color}-400">${getTimestamp(invite.time)}</p>
-                </div>
-              </div>
-              <div class="flex gap-2">
-                <button class="bg-${settings.primary_color}-600 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-900 font-bold py-2 px-4 border-2 border-opacity-0 hover:border-opacity-50 rounded border-${settings.secondary_color}-600 transition-all ease-in-out duration-150" onclick="acceptInvite('${invite.chatId}','${invite.inviterId}')">Accept</button>
-                <button class="bg-${settings.primary_color}-900 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-900 font-bold py-2 px-4 rounded border-2 border-opacity-0 hover:border-opacity-100 rounded border-red-600 transition-all ease-in-out duration-150" onclick="rejectInvite('${invite.chatId}','${invite.inviterId}') ">Reject</button>
-                </div>
-            </div>`;
-          });
           const outpage = document.getElementById("out-list");
           const inpage = document.getElementById("in-list");
-          if (outpageHTML == "") {
-            const parentDiv = document.createElement("div");
-            parentDiv.classList.add("relative", "w-full", "h-full");
-            const spanlabel = document.createElement("span");
-            spanlabel.classList.add(
-              `text-${settings.text_color}-500`,
-              "absolute",
-              "text-sm",
-              "font-semibold",
-              "top-1/2",
-              "left-1/2",
-              "transform",
-              "-translate-x-1/2",
-              "-translate-y-1/2",
-            );
-            spanlabel.textContent = "as dry as a desert 🥹.";
-            parentDiv.appendChild(spanlabel);
-            outpage.innerHTML = "";
-            outpage.appendChild(parentDiv);
-          } else {
-            outpage.innerHTML = outpageHTML;
+
+          outpage.innerHTML = "";
+          inpage.innerHTML = "";
+
+          function createInvite(invite, type) {
+            const isOut = type === "out";
+
+            // outer container
+            const container = document.createElement("div");
+            container.className = `flex items-center justify-between p-4 border-b border-${settings.primary_color}-700`;
+
+            // LEFT SIDE
+            const left = document.createElement("div");
+            left.className = "flex items-center";
+
+            const img = document.createElement("img");
+            img.src = `${rootUrl}/chatpicture/${invite.chatId}`;
+            img.className = "w-12 h-12 rounded-full mr-4";
+
+            const content = document.createElement("div");
+
+            const title = document.createElement("p");
+            title.className = `font-semibold text-${settings.text_color}-900`;
+            title.textContent =
+              (settings.show_id_in_invites ? `[${invite.chatId}] ` : "") +
+              invite.chatName;
+
+            // user button
+            const userBtn = document.createElement("button");
+            userBtn.className = `flex justify-center items-center border-2 border-${settings.primary_color}-500 border-opacity-0 hover:border-opacity-100 rounded text-sm text-${settings.text_color}-500`;
+
+            const userImg = document.createElement("img");
+            userImg.src = `${rootUrl}/pfp/${isOut ? invite.inviteeId : invite.inviterId}`;
+            userImg.className = "inline-flex w-4 h-4 rounded-full mr-2";
+
+            const userSpan = document.createElement("span");
+            userSpan.textContent =
+              (settings.show_id_in_invites
+                ? `[${isOut ? invite.inviteeId : invite.inviterId}] `
+                : "") +
+              (isOut ? invite.inviteeUsername : invite.inviterUsername);
+
+            userBtn.appendChild(userImg);
+            userBtn.appendChild(userSpan);
+
+            // SAFE event instead of onclick
+            userBtn.addEventListener("click", () => {
+              showUserProfile({
+                id: isOut ? invite.inviteeId : invite.inviterId,
+                username: isOut
+                  ? invite.inviteeUsername
+                  : invite.inviterUsername,
+              });
+            });
+
+            const time = document.createElement("p");
+            time.className = `text-sm text-${settings.text_color}-400`;
+            time.textContent = getTimestamp(invite.time);
+
+            content.appendChild(title);
+            content.appendChild(userBtn);
+            content.appendChild(time);
+
+            left.appendChild(img);
+            left.appendChild(content);
+
+            container.appendChild(left);
+
+            // RIGHT SIDE
+            if (isOut) {
+              const cancelBtn = document.createElement("button");
+              cancelBtn.className = `bg-${settings.primary_color}-600 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-900 font-bold py-2 px-4 rounded border-2 border-opacity-0 hover:border-opacity-100 border-red-600 transition-all duration-150`;
+
+              cancelBtn.textContent = "Cancel";
+
+              cancelBtn.addEventListener("click", () => {
+                cancelInvite(invite.chatId, invite.inviteeId);
+              });
+
+              container.appendChild(cancelBtn);
+            } else {
+              const btnWrap = document.createElement("div");
+              btnWrap.className = "flex gap-2";
+
+              const acceptBtn = document.createElement("button");
+              acceptBtn.className = `bg-${settings.primary_color}-600 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-900 font-bold py-2 px-4 border-2 border-opacity-0 hover:border-opacity-50 rounded border-${settings.secondary_color}-600 transition-all duration-150`;
+              acceptBtn.textContent = "Accept";
+
+              acceptBtn.addEventListener("click", () => {
+                acceptInvite(invite.chatId, invite.inviterId);
+              });
+
+              const rejectBtn = document.createElement("button");
+              rejectBtn.className = `bg-${settings.primary_color}-900 hover:bg-${settings.primary_color}-700 text-${settings.text_color}-900 font-bold py-2 px-4 rounded border-2 border-opacity-0 hover:border-opacity-100 border-red-600 transition-all duration-150`;
+              rejectBtn.textContent = "Reject";
+
+              rejectBtn.addEventListener("click", () => {
+                rejectInvite(invite.chatId, invite.inviterId);
+              });
+
+              btnWrap.appendChild(acceptBtn);
+              btnWrap.appendChild(rejectBtn);
+              container.appendChild(btnWrap);
+            }
+
+            return container;
           }
-          if (inpageHTML == "") {
-            const parentDiv = document.createElement("div");
-            parentDiv.classList.add("relative", "w-full", "h-full");
-            const spanlabel = document.createElement("span");
-            spanlabel.classList.add(
-              `text-${settings.text_color}-500`,
-              "absolute",
-              "text-sm",
-              "font-semibold",
-              "top-1/2",
-              "left-1/2",
-              "transform",
-              "-translate-x-1/2",
-              "-translate-y-1/2",
-            );
-            spanlabel.textContent = "as dry as a desert 🥹.";
-            parentDiv.appendChild(spanlabel);
-            inpage.innerHTML = "";
-            inpage.appendChild(parentDiv);
+
+          function emptyState(parent) {
+            const div = document.createElement("div");
+            div.className = "relative w-full h-full";
+
+            const span = document.createElement("span");
+            span.className = `text-${settings.text_color}-500 absolute text-sm font-semibold top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2`;
+            span.textContent = "as dry as a desert 🥹.";
+
+            div.appendChild(span);
+            parent.appendChild(div);
+          }
+
+          // render OUT
+          if (outinvites.length === 0) {
+            emptyState(outpage);
           } else {
-            inpage.innerHTML = inpageHTML;
+            outinvites.forEach((invite) => {
+              outpage.appendChild(createInvite(invite, "out"));
+            });
+          }
+
+          // render IN
+          if (ininvites.length === 0) {
+            emptyState(inpage);
+          } else {
+            ininvites.forEach((invite) => {
+              inpage.appendChild(createInvite(invite, "in"));
+            });
           }
         });
         socket.on("message_deleted", (data) => {
@@ -4312,7 +4392,7 @@
 
             document.getElementById("settings-chat-name").textContent =
               currentChat.name;
-          }else{
+          } else {
             if (!isMobile) {
               toHome();
             } else {
@@ -4321,29 +4401,35 @@
           }
           renderChatList();
         });
-        socket.on("chat_messages", ({ chatId, messages }) => {
+        socket.on("chat_messages", ({ chatId, messages, fromDelete }) => {
           if (currentChat && currentChat?.id === chatId) {
             const messageContainer =
               document.getElementById("message-container");
             messageContainer.innerHTML = "";
             lastMessageSender = null;
             const timeStamp = Date.now();
+            if (!fromDelete) {
+              prevTS = timeStamp;
+            }
             messages.forEach((message) => {
-              appendMessage(message, true, timeStamp);
+              appendMessage(message, true, timeStamp, fromDelete);
             });
-
-            requestAnimationFrame(() => {
-              document.getElementById("message-container").scrollTo({
-                top: document.getElementById("message-container").scrollHeight,
-                behavior: "instant",
+            if (!fromDelete) {
+              requestAnimationFrame(() => {
+                document.getElementById("message-container").scrollTo({
+                  top: document.getElementById("message-container")
+                    .scrollHeight,
+                  behavior: "instant",
+                });
               });
-            });
+            }
           }
         });
         socket.on("message_received", ({ chatId, message }) => {
           if (currentChat && currentChat?.id === chatId) {
             const timeStamp = Date.now();
-            appendMessage(message, false, timeStamp);
+            prevTS = timeStamp;
+            appendMessage(message, false, timeStamp, false);
           }
         });
       }
@@ -4380,7 +4466,6 @@
             mobileSwitchToPane(1);
           }
           showToast("Logged in successfully.");
-          document.getElementById("dash-iframe").src = `${rootUrl}/dashboard`;
         });
 
         socket.on("registered", (user) => {
@@ -4414,7 +4499,6 @@
             mobileSwitchToPane(1);
           }
           showToast("Registered and logged in successfully.");
-          document.getElementById("dash-iframe").src = `${rootUrl}/dashboard`;
         });
         socket.on("registration_failed", () => {
           showToast("Registration failed. Try another username.");
@@ -4684,6 +4768,7 @@
         document
           .getElementById("open-dash-btn")
           .addEventListener("click", async () => {
+            document.getElementById("dash-iframe").src = `${rootUrl}/dashboard`;
             document.getElementById("dash-screen").classList.remove("hidden");
           });
 
@@ -4705,20 +4790,25 @@
             "search_user",
             { query: searchUserInput.value.trim() },
             (users) => {
-              searchUserList.innerHTML =
-                users.length > 0
-                  ? ""
-                  : `
-                    <div class="flex w-full justify-center items-center p-4 rounded-lg bg-${settings.primary_color}-600">
-      <span class="text-${settings.text_color}-700 font-semibold">
-                          ${
-                            searchUserInput.value.length < 4
-                              ? "Type at least 4 characters to search"
-                              : "No users found matching your search"
-                          }
-                        </span>
-                      </div>
-                    `;
+              searchUserList.innerHTML = "";
+
+              if (users.length === 0) {
+                const wrapper = document.createElement("div");
+                wrapper.className = `flex w-full justify-center items-center p-4 rounded-lg bg-${settings.primary_color}-600`;
+
+                const span = document.createElement("span");
+                span.className = `text-${settings.text_color}-700 font-semibold`;
+
+                const message =
+                  searchUserInput.value.length < 4
+                    ? "Type at least 4 characters to search"
+                    : "No users found matching your search";
+
+                span.textContent = message;
+
+                wrapper.appendChild(span);
+                searchUserList.appendChild(wrapper);
+              }
               for (let i = 0; i < users.length; i++) {
                 const user = users[i];
                 const userElement = document.createElement("div");
@@ -5325,7 +5415,70 @@
                 JSON.stringify(settings),
               );
               showToast("Settings reset.");
+              window.location.reload();
             }
+          });
+        document
+          .getElementById("export-settings-btn")
+          .addEventListener("click", () => {
+            const settingsString = JSON.stringify(settings);
+            const blob = new Blob([settingsString], {
+              type: "application/json",
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "settings.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          });
+        document
+          .getElementById("import-settings-btn")
+          .addEventListener("click", () => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".json,application/json";
+
+            input.onchange = async (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+
+              try {
+                const text = await file.text();
+                const imported = JSON.parse(text);
+                if (typeof imported !== "object" || Array.isArray(imported)) {
+                  throw new Error("Invalid JSON format");
+                }
+
+                Object.entries(settingsInfo).forEach((entry) => {
+                  const [key, _] = entry;
+                  if (Object.keys(imported).includes(key)) {
+                    const userAppSettingsValue = imported[key];
+                    const settingValue = getSettingValue(
+                      key,
+                      userAppSettingsValue,
+                    );
+                    if (settingValue !== null) {
+                      settings[key] = settingValue;
+                    }
+                  }
+                });
+
+                localStorage.setItem(
+                  "chatapp:settings",
+                  JSON.stringify(settings),
+                );
+
+                showToast("Settings imported successfully.");
+                window.location.reload();
+              } catch (err) {
+                console.error(err);
+                showToast("Invalid JSON file");
+              }
+            };
+
+            input.click();
           });
       }
 
@@ -5534,7 +5687,7 @@
         document.getElementById("login-page-version").textContent = version;
         document.getElementById("chats-search-bar").value = "";
         document.getElementById("participants-search-bar").value = "";
-        document.getElementById("home-version-display").textContent = version;
+        document.getElementById("open-changelog").textContent = version;
         document.getElementById("download-link").href = `${rootUrl}/download`;
 
         updateBackgroundImage();
@@ -5586,36 +5739,6 @@
         }
 
         localStorage.setItem("chatapp:settings", JSON.stringify(settings));
-
-        function getSettingValue(key, settingValue) {
-          switch (settingsInfo[key].type) {
-            case "number":
-              const numberValue = Number(settingValue);
-              if (numberValue === "NaN") {
-                return null;
-              }
-              return numberValue;
-            case "boolean":
-              const booleanValue = [true, false].includes(settingValue)
-                ? settingValue
-                : null;
-              if (booleanValue === null) {
-                return null;
-              }
-              return booleanValue;
-            case "string":
-              if (settingValue) {
-                return settingValue;
-              }
-              return null;
-            case "drop":
-              if (settingValue) {
-                return settingValue;
-              }
-              return null;
-          }
-          return null;
-        }
       }
 
       function renderAppSettings() {
@@ -5744,7 +5867,9 @@
                 "p-2",
               );
               settingInputString.addEventListener("change", () => {
-                settings[key] = settingInputString.value;
+                settings[key] = settingsInfo[key].lowerCase
+                  ? settingInputString.value.toLowerCase()
+                  : settingInputString.value;
                 localStorage.setItem(
                   "chatapp:settings",
                   JSON.stringify(settings),

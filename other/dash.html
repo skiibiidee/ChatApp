@@ -1,124 +1,114 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      body {
-        background-color: #0a0a0a;
-        color: #e5e7eb;
-        font-family: "Inter", sans-serif;
-      }
-    </style>
-  </head>
-  <body class="bg-gray-950 text-gray-300">
-    <div class="container mx-auto p-6">
-      <h1 class="text-3xl font-bold text-center mb-6">Dashboard</h1>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
-          <h5 class="text-lg font-semibold">Current Users in Chat</h5>
-          <h2 id="current-user-count" class="text-3xl font-bold">0</h2>
-          <canvas id="userChart"></canvas>
-        </div>
-        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
-          <h5 class="text-lg font-semibold">Total Chats</h5>
-          <h2 id="total-chats" class="text-3xl font-bold">0</h2>
-          <canvas id="chatChart"></canvas>
-        </div>
-        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
-          <h5 class="text-lg font-semibold">Total Users</h5>
-          <h2 id="total-users" class="text-3xl font-bold">0</h2>
-          <canvas id="totalUserChart"></canvas>
-        </div>
-        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
-          <h5 class="text-lg font-semibold">Total Messages</h5>
-          <h2 id="total-messages" class="text-3xl font-bold">0</h2>
-          <canvas id="messageChart"></canvas>
-        </div>
-        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
-          <h5 class="text-lg font-semibold">Total Attachments</h5>
-          <h2 id="total-attachments" class="text-3xl font-bold">0</h2>
-          <canvas id="attachmentChart"></canvas>
-        </div>
-      </div>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      background: #000;
+      color: #e5e5e5;
+      font-family: "Inter", sans-serif;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(12px);
+    }
+
+    .glow {
+      box-shadow: 0 0 30px rgba(255,255,255,0.06);
+    }
+
+    .soft-glow:hover {
+      box-shadow: 0 0 40px rgba(255,255,255,0.12);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen">
+
+  <!-- Header -->
+  <div class="w-full p-6 flex items-center">
+    <h1 class="text-3xl font-semibold tracking-wide text-white">
+      Dashboard
+    </h1>
+  </div>
+
+  <!-- Grid -->
+  <div class="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+    <div class="card glow soft-glow p-6 rounded-2xl transition">
+      <p class="text-xs text-gray-500 mb-2">users in chats</p>
+      <h2 id="current-user-count" class="text-4xl font-semibold text-white">0</h2>
     </div>
 
-    <script>
-      async function fetchStats() {
-        const response = await fetch("/api/stats");
-        const data = await response.json();
-        document.getElementById("current-user-count").innerText =
-          data.currentUserCount;
-        document.getElementById("total-chats").innerText = data.totalChats;
-        document.getElementById("total-users").innerText = data.totalUsers;
-        document.getElementById("total-messages").innerText = data.messageCount;
-        document.getElementById("total-attachments").innerText =
-          data.totalAttachments;
-        updateChart(userChart, data.currentUserCount);
-        updateChart(chatChart, data.totalChats);
-        updateChart(totalUserChart, data.totalUsers);
-        updateChart(messageChart, data.messageCount);
-        updateChart(attachmentChart, data.totalAttachments);
+    <div class="card glow soft-glow p-6 rounded-2xl transition">
+      <p class="text-xs text-gray-500 mb-2">total chats</p>
+      <h2 id="total-chats" class="text-4xl font-semibold text-white">0</h2>
+    </div>
+
+    <div class="card glow soft-glow p-6 rounded-2xl transition">
+      <p class="text-xs text-gray-500 mb-2">total users</p>
+      <h2 id="total-users" class="text-4xl font-semibold text-white">0</h2>
+    </div>
+
+    <div class="card glow soft-glow p-6 rounded-2xl transition">
+      <p class="text-xs text-gray-500 mb-2">messages</p>
+      <h2 id="total-messages" class="text-4xl font-semibold text-white">0</h2>
+    </div>
+
+    <div class="card glow soft-glow p-6 rounded-2xl transition">
+      <p class="text-xs text-gray-500 mb-2">attachments</p>
+      <h2 id="total-attachments" class="text-4xl font-semibold text-white">0</h2>
+    </div>
+
+  </div>
+
+  <script>
+    let userCount = 0;
+    let totalChats = 0;
+    let totalUsers = 0;
+    let totalMessages = 0;
+    let totalAttachments = 0;
+    
+    function animateValue(element, start, end, duration = 600) {
+      let startTime = null;
+
+      function update(currentTime) {
+        if (!startTime) startTime = currentTime;
+        const progress = Math.min((currentTime - startTime) / duration, 1);
+        const value = Math.floor(progress * (end - start) + start);
+        element.innerText = value;
+        if (progress < 1) requestAnimationFrame(update);
       }
 
-      function createChart(ctx, label) {
-        return new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: [],
-            datasets: [{
-              label: label,
-              data: [],
-              borderColor: "rgba(255, 99, 132, 1)",
-              borderWidth: 2,
-              fill: false,
-            }],
-          },
-          options: {
-            scales: {
-              y: { beginAtZero: true },
-            },
-          },
-        });
-      }
+      requestAnimationFrame(update);
+    }
 
-      function updateChart(chart, newData) {
-        const now = new Date().toLocaleTimeString();
-        chart.data.labels.push(now);
-        chart.data.datasets[0].data.push(newData);
-        if (chart.data.labels.length > 10) {
-          chart.data.labels.shift();
-          chart.data.datasets[0].data.shift();
-        }
-        chart.update();
-      }
+    async function fetchStats() {
+      const response = await fetch("/api/stats");
+      const data = await response.json();
 
-      const userChart = createChart(
-        document.getElementById("userChart").getContext("2d"),
-        "Current Users",
-      );
-      const chatChart = createChart(
-        document.getElementById("chatChart").getContext("2d"),
-        "Total Chats",
-      );
-      const totalUserChart = createChart(
-        document.getElementById("totalUserChart").getContext("2d"),
-        "Total Users",
-      );
-      const messageChart = createChart(
-        document.getElementById("messageChart").getContext("2d"),
-        "Total Messages",
-      );
-      const attachmentChart = createChart(
-        document.getElementById("attachmentChart").getContext("2d"),
-        "Total Attachments",
-      );
+      animateValue(document.getElementById("current-user-count"), userCount, data.currentUserCount);
+      animateValue(document.getElementById("total-chats"), totalChats, data.totalChats);
+      animateValue(document.getElementById("total-users"), totalUsers, data.totalUsers);
+      animateValue(document.getElementById("total-messages"), totalMessages, data.messageCount);
+      animateValue(document.getElementById("total-attachments"), totalAttachments, data.totalAttachments);
+      userCount = data.currentUserCount;
+      totalChats = data.totalChats;
+      totalUsers = data.totalUsers;
+      totalMessages = data.messageCount;
+      totalAttachments = data.totalAttachments;
+      
+    }
 
-      setInterval(fetchStats, 5000);
-      fetchStats();
-    </script>
-  </body>
+    setInterval(fetchStats, 5000);
+    fetchStats();
+  </script>
+
+</body>
 </html>
